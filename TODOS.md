@@ -5,8 +5,8 @@
 - [X] Create a hello world basic MCP app server and connect to it via Claude Desktop
 - [X] Deploy basic MCP server to Union serving
 - [X] example: connect to remote MCP server
-- [ ] Get an authenticated `UnionRemote` object
-- [ ] List all task and workflow metadata available
+- [X] Get an authenticated `UnionRemote` object
+- [X] List all task and workflow metadata available
 - [ ] List all app metadata available
 - [ ] v0 interface: expose tools to call existing tasks, workflows, and apps
 - [ ] example: use with Claude Desktop
