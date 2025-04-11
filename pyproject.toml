@@ -13,8 +13,11 @@ authors = [
     { name = "Niels Bantilan" }
 ]
 dependencies = [
-    "union",
+    "flytekit@git+https://github.com/flyteorg/flytekit@nielsb/add-task-wf-short-description",
     "mcp[cli]>=1.6.0",
+    "protobuf",
+    "pydantic",
+    "union",
 ]
 
 [project.optional-dependencies]
@@ -25,6 +28,9 @@ dev = [
     "pytest",
     "pytest-cov"
 ]
+
+[tool.setuptools.packages.find]
+include = ["union_mcp*"]
 
 [tool.black]
 line-length = 88

@@ -57,3 +57,18 @@ You should see something like
 > [!NOTE]
 > Make sure the `uv` executable is available in `/usr/local/bin`, otherwise
 > replace `command` with the full path, e.g. `/Users/username/.local/bin/uv`
+
+
+## Running a local server
+
+```bash
+union register --project mcp-testing examples/workflows.py
+```
+
+```bash
+mcp run examples/server.py --transport sse
+```
+
+```bash
+npx @modelcontextprotocol/inspector
+```
