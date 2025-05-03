@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/unionai-oss-union-mcp-badge.png)](https://mseep.ai/app/unionai-oss-union-mcp)
+
 # Union MCP
 
 An MCP server to use Union tasks, workflows, and apps as tools.
