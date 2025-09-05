@@ -10,7 +10,7 @@ image = union.ImageSpec(
 
 @union.task(
     container_image=image,
-    requests=union.Resources(cpu="2", mem="250Mi"),
+    requests=union.Resources(cpu="2", mem="250Mi"),  # ❌ this causes an OOM!
 )
 def oomer(x: int):
     large_list = [x for _ in range(100_000_000)]

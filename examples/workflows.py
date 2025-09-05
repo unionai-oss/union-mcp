@@ -30,7 +30,7 @@ def multiply(a: int, b: int) -> int:
 @actor.task
 def append_hello(foo: str) -> str:
     """A task that prints a string and returns a string with 'hello' appended to the input."""
-    foo = foo + 123
+    foo = foo + 123  # ❌ this is a bug!
     return foo
 
 
