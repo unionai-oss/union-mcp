@@ -5,8 +5,20 @@ from mcp.server.fastmcp import FastMCP
 import union_mcp.resources as resources
 from datetime import timedelta
 
+
+instructions = """
+This MCP server is used to interact with Union resources and services.
+
+For tools that take project and domain arguments, the MCP client needs to provide
+them to the MCP tool calls, and if not provided, the client needs to ask the
+user for the project and domain that they are trying to access.
+"""
+
 # Create an MCP server
-mcp = FastMCP("Union MCP")
+mcp = FastMCP(
+    name="Union MCP",
+    instructions=instructions,
+)
 
 
 def _remote(project: str, domain: str):
