@@ -8,16 +8,16 @@ version = "0.1.0"
 description = "An MCP server to connect to Union resources and services."
 readme = "README.md"
 license = "Apache-2.0"
-requires-python = ">=3.10"
+requires-python = ">=3.10,<3.13"
 authors = [
     { name = "Niels Bantilan" }
 ]
 dependencies = [
-    "flytekit@git+https://github.com/flyteorg/flytekit@nielsb/add-task-wf-short-description",
+    "flytekit@git+https://github.com/flyteorg/flytekit@master",
     "mcp[cli]>=1.6.0",
     "protobuf",
     "pydantic",
-    "union",
+    "union>=0.1.193",
 ]
 
 [project.optional-dependencies]

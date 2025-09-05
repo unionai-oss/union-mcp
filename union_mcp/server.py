@@ -7,14 +7,21 @@ from datetime import timedelta
 
 # Create an MCP server
 mcp = FastMCP("Union MCP")
-remote = union.UnionRemote()
 
 
-# Tools
-# -----
+def _remote(project: str, domain: str):
+    return union.UnionRemote(
+        default_project=project,
+        default_domain=domain,
+    )
 
 @mcp.tool()
-def run_task(project: str, domain: str, name: str, inputs: dict) -> tuple[dict, str]:
+def run_task(
+    name: str,
+    inputs: dict,
+    project: str,
+    domain: str,
+) -> tuple[dict, str]:
     """Run a task with natural language.
 
     - Based on the prompt and inputs dictionary, determine the task to run
@@ -31,34 +38,78 @@ def run_task(project: str, domain: str, name: str, inputs: dict) -> tuple[dict, 
         A dictionary of outputs from the task.
     """
     # Based on the prompt and inputs dictionary, determine the task
+    remote = _remote(project, domain)
     task = remote.fetch_task(project=project, domain=domain, name=name)
-    ex = remote.execute(task, inputs, project=project, domain=domain)
-    ex = remote.wait(ex, poll_interval=timedelta(seconds=2))
-    outputs = {k: v for k, v in ex.outputs.items() if v is not None}
-    url = remote.generate_console_url(ex)
+    execution = remote.execute(task, inputs, project=project, domain=domain)
+    execution = remote.wait(execution, poll_interval=timedelta(seconds=2))
+    outputs = {k: v for k, v in execution.outputs.items() if v is not None}
+    url = remote.generate_console_url(execution)
+    return outputs, url
+
+
+@mcp.tool()
+def run_workflow(
+    name: str,
+    inputs: dict,
+    project: str,
+    domain: str,
+) -> tuple[dict, str]:
+    """Run a workflow with natural language.
+
+    - Based on the prompt and inputs dictionary, determine the workflow to run
+    - Format the inputs dictionary so that it matches the workflow function signature
+    - Invoke the workflow
+
+    Args:
+        project: Project to run the workflow in.
+        domain: Domain to run the workflow in.
+        name: Name of the task to run.
+        inputs: A dictionary of inputs to the workflow.
+
+    Returns:
+        A dictionary of outputs from the workflow.
+    """
+    # Based on the prompt and inputs dictionary, determine the workflow
+    remote = _remote(project, domain)
+    workflow = remote.fetch_workflow(project=project, domain=domain, name=name)
+    execution = remote.execute(workflow, inputs, project=project, domain=domain)
+    execution = remote.wait(execution, poll_interval=timedelta(seconds=2))
+    outputs = {k: v for k, v in execution.outputs.items() if v is not None}
+    url = remote.generate_console_url(execution)
     return outputs, url
 
 
 @mcp.tool()
 def get_task(name: str, project: str, domain: str) -> str:
-    """Get a personalized union"""
+    """Get a union task."""
+    remote = _remote(project, domain)
     task = remote.fetch_task(name=name, project=project, domain=domain)
     return str(task)
 
 
 @mcp.tool()
+def get_execution(name: str, project: str, domain: str) -> dict:
+    """Get personalized union execution."""
+    remote = _remote(project, domain)
+    execution = remote.fetch_execution(name=name, project=project, domain=domain)
+    return resources.proto_to_json(execution.to_flyte_idl())
+
+
+@mcp.tool()
 def list_tasks(
-    project: str = remote.default_project,
-    domain: str = remote.default_domain,
+    project: str,
+    domain: str,
 ) -> list[resources.TaskMetadata]:
     """List all tasks in a project and domain."""
+    remote = _remote(project, domain)
     return resources.list_tasks(remote, project, domain)
 
 
 @mcp.tool()
 def list_workflows(
-    project: str = remote.default_project,
-    domain: str = remote.default_domain,
+    project: str,
+    domain: str,
 ) -> list[resources.WorkflowMetadata]:
     """List all workflows in a project and domain."""
+    remote = _remote(project, domain)
     return resources.list_workflows(remote, project, domain)

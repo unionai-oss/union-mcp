@@ -1,21 +1,12 @@
 import json
 
 import union
+from flytekit.remote import FlyteTaskExecution, FlyteWorkflowExecution
 from flytekit.models.common import NamedEntityIdentifier
 from google.protobuf.json_format import MessageToJson
 from google.protobuf.message import Message
 from pydantic import BaseModel
 
-
-remote = union.UnionRemote(
-    default_project="mcp-testing",
-    default_domain="development",
-)
-
-id = NamedEntityIdentifier(
-    project="mcp-testing",
-    domain="development",
-)
 
 class TaskMetadata(BaseModel):
     name: str
@@ -31,11 +22,27 @@ class WorkflowMetadata(BaseModel):
     outputs: dict
 
 
+def _remote():
+    return union.UnionRemote(
+        default_project="mcp-testing",
+        default_domain="development",
+    )
+
+
+def _project_domain():
+    return NamedEntityIdentifier(
+        project="mcp-testing",
+        domain="development",
+    )
+
+
 def _proto_to_json(proto: Message) -> dict:
     return json.loads(MessageToJson(proto))
 
 
 def list_tasks() -> list[TaskMetadata]:
+    remote = _remote()
+    id = _project_domain()
     task_models, _ = remote.client.list_tasks_paginated(id, limit=1000)
     tasks = [t.to_flyte_idl() for t in task_models]
     return [
@@ -50,6 +57,8 @@ def list_tasks() -> list[TaskMetadata]:
 
 
 def list_workflows() -> list[WorkflowMetadata]:
+    remote = _remote()
+    id = _project_domain()
     workflow_models, _ = remote.client.list_workflows_paginated(id, limit=1000)
     workflows = [w.to_flyte_idl() for w in workflow_models]
     return [
@@ -62,11 +71,16 @@ def list_workflows() -> list[WorkflowMetadata]:
         for workflow in workflows
     ]
 
+
+def get_execution(name: str) -> dict:
+    remote = _remote()
+    execution = remote.fetch_execution(name=name)
+    return _proto_to_json(execution.to_flyte_idl())
+
+
 if __name__ == "__main__":
     tasks = list_tasks()
     workflows = list_workflows()
 
     print(tasks)
     print(workflows)
-
-    import ipdb; ipdb.set_trace()

@@ -7,11 +7,14 @@ image = union.ImageSpec(
     apt_packages=["git"],
     packages=["uv", "union", "union-runtime>=0.1.17", "mcp[cli]"],
     builder="union",
+).with_commands(
+    ["pip install git+https://github.com/flyteorg/flytekit@master"]
 )
 
 
 app = App(
-    name="union-mcp-test-1",
+    name="union-mcp-test-0",
+    subdomain="mcp-testing-test",
     port=8000,
     include=["examples/server.py", "union_mcp"],
     container_image=image,

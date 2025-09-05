@@ -72,3 +72,9 @@ mcp run examples/server.py --transport sse
 ```bash
 npx @modelcontextprotocol/inspector
 ```
+
+## Deploying to Union
+
+```bash
+union deploy apps --project mcp-testing app.py union-mcp-test-0
+```

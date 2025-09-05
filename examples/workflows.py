@@ -2,9 +2,9 @@ import union
 
 
 image = union.ImageSpec(
-    name="union-mcp-server",
+    name="union-mcp-example-workflows",
     builder="union",
-    packages=["pandas", "pyarrow", "scikit-learn"],
+    packages=["pandas", "pyarrow", "scikit-learn", "union"],
 )
 
 
@@ -15,16 +15,23 @@ actor = union.ActorEnvironment(
 )
 
 
-@actor.task(cache=True, cache_version="1")
+@actor.task
 def add(a: int, b: int) -> int:
     """Add two numbers."""
     return a + b
 
 
-@actor.task(cache=True, cache_version="1")
+@actor.task
 def multiply(a: int, b: int) -> int:
     """Multiply two numbers."""
     return a * b
+
+
+@actor.task
+def append_hello(foo: str) -> str:
+    """A task that prints a string and returns a string with 'hello' appended to the input."""
+    foo = foo + 123
+    return foo
 
 
 @union.workflow
