@@ -1,6 +1,5 @@
 """Union MCP server."""
 
-import union
 from mcp.server.fastmcp import FastMCP
 import union_mcp.resources as resources
 from datetime import timedelta
@@ -22,6 +21,8 @@ mcp = FastMCP(
 
 
 def _remote(project: str, domain: str):
+    import union
+
     return union.UnionRemote(
         default_project=project,
         default_domain=domain,

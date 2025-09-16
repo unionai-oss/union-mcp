@@ -1,13 +1,15 @@
 """MCP utility functions."""
 
 import json
+import typing
 
-import union
-from flytekit.models.common import NamedEntityIdentifier
 from google.protobuf.json_format import MessageToJson
 from google.protobuf.message import Message
 from pydantic import BaseModel
 
+
+if typing.TYPE_CHECKING:
+    import union
 
 class TaskMetadata(BaseModel):
     name: str
@@ -28,6 +30,8 @@ def proto_to_json(proto: Message) -> dict:
 
 
 def list_tasks(remote: union.UnionRemote, project: str, domain: str) -> list[TaskMetadata]:
+    from flytekit.models.common import NamedEntityIdentifier
+
     id = NamedEntityIdentifier(project=project, domain=domain)
     task_models, _ = remote.client.list_tasks_paginated(id, limit=100)
     tasks = [t.to_flyte_idl() for t in task_models]
@@ -43,6 +47,8 @@ def list_tasks(remote: union.UnionRemote, project: str, domain: str) -> list[Tas
 
 
 def list_workflows(remote: union.UnionRemote, project: str, domain: str) -> list[WorkflowMetadata]:
+    from flytekit.models.common import NamedEntityIdentifier
+
     id = NamedEntityIdentifier(project=project, domain=domain)
     workflow_models, _ = remote.client.list_workflows_paginated(id, limit=100)
     workflows = [w.to_flyte_idl() for w in workflow_models]

@@ -1,0 +1,28 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+
+# Prerequisites
+
+If it's unclear what project and domain to use, ask the user for the project and domain that they are trying to access.
+
+# Running local workflows
+
+When asked to run a task or workflow locally, use the following CLI command template in a terminal:
+
+```bash
+union run --remote --project <project> --domain <domain> <file.py> <task_or_workflow_name> <input_flags>
+```
+
+# Getting execution errors
+
+To get errors from a remote execution, use the Union MCP `get_execution` tool. This
+will return an execution JSON object containing the error text.
+
+# Getting remote information
+
+In general, when the user asks for information about a remote task, workflow, or execution, use the Union MCP `list_tasks`, `list_workflows`, `get_tasks`, `get_workflows`, or `get_execution` tools.
+
+To run remote tasks and workflows, use the Union MCP `run_task` and `run_workflow` tools.

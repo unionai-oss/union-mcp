@@ -13,14 +13,19 @@ authors = [
     { name = "Niels Bantilan" }
 ]
 dependencies = [
-    "flytekit@git+https://github.com/flyteorg/flytekit@master",
     "mcp[cli]>=1.6.0",
     "protobuf",
     "pydantic",
-    "union>=0.1.193",
 ]
 
 [project.optional-dependencies]
+v1 = [
+    "flytekit>=1.16.4",
+    "union>=0.1.193",
+]
+v2 = [
+    "flyte>=2.0.0b21",
+]
 dev = [
     "black",
     "isort",
