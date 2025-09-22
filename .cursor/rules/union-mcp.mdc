@@ -16,6 +16,8 @@ When asked to run a task or workflow locally, use the following CLI command temp
 union run --remote --project <project> --domain <domain> <file.py> <task_or_workflow_name> <input_flags>
 ```
 
+If the user has a `.venv` directory in their project repo, make sure to activate the virtual environment before running the `union run` command.
+
 # Getting execution errors
 
 To get errors from a remote execution, use the Union MCP `get_execution` tool. This
