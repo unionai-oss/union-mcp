@@ -1,8 +1,10 @@
 """Union MCP server."""
 
-from mcp.server.fastmcp import FastMCP
-import union_mcp.resources as resources
 from datetime import timedelta
+
+from mcp.server.fastmcp import FastMCP, Context
+
+import union_mcp.v1.resources as resources
 
 
 instructions = """
@@ -34,7 +36,9 @@ def run_task(
     inputs: dict,
     project: str,
     domain: str,
+    ctx: Context,
 ) -> tuple[dict, str]:
+    ctx.info(f"Running task {name} in project {project} and domain {domain}")
     """Run a task with natural language.
 
     - Based on the prompt and inputs dictionary, determine the task to run
@@ -66,6 +70,7 @@ def run_workflow(
     inputs: dict,
     project: str,
     domain: str,
+    ctx: Context,
 ) -> tuple[dict, str]:
     """Run a workflow with natural language.
 
@@ -82,7 +87,7 @@ def run_workflow(
     Returns:
         A dictionary of outputs from the workflow.
     """
-    # Based on the prompt and inputs dictionary, determine the workflow
+    ctx.info(f"Running workflow {name} in project {project} and domain {domain}")
     remote = _remote(project, domain)
     workflow = remote.fetch_workflow(project=project, domain=domain, name=name)
     execution = remote.execute(workflow, inputs, project=project, domain=domain)
@@ -93,7 +98,8 @@ def run_workflow(
 
 
 @mcp.tool()
-def get_task(name: str, project: str, domain: str) -> str:
+def get_task(name: str, project: str, domain: str, ctx: Context) -> str:
+    ctx.info(f"Getting task {name} in project {project} and domain {domain}")
     """Get a union task."""
     remote = _remote(project, domain)
     task = remote.fetch_task(name=name, project=project, domain=domain)
@@ -101,7 +107,9 @@ def get_task(name: str, project: str, domain: str) -> str:
 
 
 @mcp.tool()
-def get_execution(name: str, project: str, domain: str) -> dict:
+def get_execution(name: str, project: str, domain: str, ctx: Context) -> dict:
+    ctx.info(f"Getting execution {name} in project {project} and domain {domain}")
+    ctx.warning(f"Request context: {ctx.request_context}")
     """Get personalized union execution."""
     remote = _remote(project, domain)
     execution = remote.fetch_execution(name=name, project=project, domain=domain)
@@ -112,9 +120,11 @@ def get_execution(name: str, project: str, domain: str) -> dict:
 def list_tasks(
     project: str,
     domain: str,
+    ctx: Context,
 ) -> list[resources.TaskMetadata]:
     """List all tasks in a project and domain."""
     remote = _remote(project, domain)
+    ctx.info(f"Listing tasks in project {project} and domain {domain}")
     return resources.list_tasks(remote, project, domain)
 
 
@@ -122,7 +132,9 @@ def list_tasks(
 def list_workflows(
     project: str,
     domain: str,
+    ctx: Context,
 ) -> list[resources.WorkflowMetadata]:
     """List all workflows in a project and domain."""
     remote = _remote(project, domain)
+    ctx.info(f"Listing workflows in project {project} and domain {domain}")
     return resources.list_workflows(remote, project, domain)

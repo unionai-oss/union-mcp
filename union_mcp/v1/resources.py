@@ -1,15 +1,12 @@
 """MCP utility functions."""
 
 import json
-import typing
 
+import union
 from google.protobuf.json_format import MessageToJson
 from google.protobuf.message import Message
 from pydantic import BaseModel
 
-
-if typing.TYPE_CHECKING:
-    import union
 
 class TaskMetadata(BaseModel):
     name: str

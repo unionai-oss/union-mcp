@@ -17,6 +17,27 @@ pip install uv
 uv sync
 ```
 
+## Running a local server
+
+```bash
+union register --project mcp-testing examples/workflows.py
+```
+
+```bash
+mcp run examples/server.py --transport sse
+```
+
+```bash
+npx @modelcontextprotocol/inspector
+```
+
+## Deploying to Union
+
+```bash
+union deploy apps --project mcp-testing app.py union-mcp-test-0
+```
+
+
 ## Use with Claude Desktop
 
 First, install [Claude Desktop](https://claude.ai/download).
@@ -57,24 +78,3 @@ You should see something like
 > [!NOTE]
 > Make sure the `uv` executable is available in `/usr/local/bin`, otherwise
 > replace `command` with the full path, e.g. `/Users/username/.local/bin/uv`
-
-
-## Running a local server
-
-```bash
-union register --project mcp-testing examples/workflows.py
-```
-
-```bash
-mcp run examples/server.py --transport sse
-```
-
-```bash
-npx @modelcontextprotocol/inspector
-```
-
-## Deploying to Union
-
-```bash
-union deploy apps --project mcp-testing app.py union-mcp-test-0
-```

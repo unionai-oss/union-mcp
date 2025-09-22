@@ -7,11 +7,11 @@
 - [X] example: connect to remote MCP server
 - [X] Get an authenticated `UnionRemote` object
 - [X] List all task and workflow metadata available
-- [ ] List all app metadata available
-- [ ] v0 interface: expose tools to call existing tasks, workflows, and apps
-- [ ] example: use with Claude Desktop
+- [X] v0 interface: expose tools to call existing tasks and workflows
+- [X] example: use with Claude Desktop
+- [X] example: integrate with Cursor IDE
 - [ ] example: integrate with Open WebUI
-- [ ] example: integrate with Cursor IDE (not sure if this is supported)
+- [ ] example: integrate with VSCode
 
 ## Milestone 2
 

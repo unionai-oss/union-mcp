@@ -14,14 +14,13 @@ authors = [
 ]
 dependencies = [
     "mcp[cli]>=1.6.0",
-    "protobuf",
     "pydantic",
 ]
 
 [project.optional-dependencies]
 v1 = [
     "flytekit>=1.16.4",
-    "union>=0.1.193",
+    "union>=0.1.194",
 ]
 v2 = [
     "flyte>=2.0.0b21",

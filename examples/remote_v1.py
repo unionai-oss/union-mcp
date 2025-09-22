@@ -1,7 +1,10 @@
+"""
+An example file showing how to interact with the Union controlplane via the v1 Remote API.
+"""
+
 import json
 
 import union
-from flytekit.remote import FlyteTaskExecution, FlyteWorkflowExecution
 from flytekit.models.common import NamedEntityIdentifier
 from google.protobuf.json_format import MessageToJson
 from google.protobuf.message import Message

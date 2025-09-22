@@ -7,8 +7,6 @@ image = union.ImageSpec(
     apt_packages=["git"],
     packages=["uv", "union", "union-runtime>=0.1.17", "mcp[cli]"],
     builder="union",
-).with_commands(
-    ["pip install git+https://github.com/flyteorg/flytekit@master"]
 )
 
 
@@ -22,7 +20,7 @@ app = App(
     requests=union.Resources(cpu=2, mem="1Gi"),
     secrets=[
         union.Secret(
-            key="niels-union-api-key",
+            key="EAGER_API_KEY",
             env_var="UNION_API_KEY",
         )
     ],
