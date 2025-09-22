@@ -1,5 +1,11 @@
+import os
 import union
 from union.app import App
+
+
+APP_NAME = os.getenv("APP_NAME", "union-mcp")
+APP_SUBDOMAIN = os.getenv("APP_SUBDOMAIN", "mcp-testing-test")
+APP_PORT = os.getenv("APP_PORT", 8000)
 
 
 image = union.ImageSpec(
@@ -11,9 +17,9 @@ image = union.ImageSpec(
 
 
 app = App(
-    name="union-mcp-test-0",
-    subdomain="mcp-testing-test",
-    port=8000,
+    name=APP_NAME,
+    subdomain=APP_SUBDOMAIN,
+    port=APP_PORT,
     include=["examples/server.py", "union_mcp"],
     container_image=image,
     args="mcp run examples/server.py --transport sse",
