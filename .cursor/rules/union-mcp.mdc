@@ -28,3 +28,14 @@ will return an execution JSON object containing the error text.
 In general, when the user asks for information about a remote task, workflow, or execution, use the Union MCP `list_tasks`, `list_workflows`, `get_tasks`, `get_workflows`, or `get_execution` tools.
 
 To run remote tasks and workflows, use the Union MCP `run_task` and `run_workflow` tools.
+
+# Authentication
+
+If you make a tool call and get an `Authentication required: Invalid or missing token` error, ask the user to add the
+following `Authorization` header to the `mcp.json` file:
+
+```json
+"headers": {
+    "Authorization": "Bearer <your-token>"
+}
+```

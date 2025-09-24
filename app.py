@@ -4,8 +4,8 @@ from union.app import App
 
 
 APP_NAME = os.getenv("APP_NAME", "union-mcp")
-APP_SUBDOMAIN = os.getenv("APP_SUBDOMAIN", "mcp-testing-test")
-APP_PORT = os.getenv("APP_PORT", 8000)
+APP_SUBDOMAIN = os.getenv("APP_SUBDOMAIN", "mcp")
+APP_PORT = int(os.getenv("APP_PORT", 8000))
 
 
 image = union.ImageSpec(
@@ -25,10 +25,8 @@ app = App(
     args="mcp run examples/server.py --transport sse",
     requests=union.Resources(cpu=2, mem="1Gi"),
     secrets=[
-        union.Secret(
-            key="EAGER_API_KEY",
-            env_var="UNION_API_KEY",
-        )
+        union.Secret(key="EAGER_API_KEY", env_var="UNION_API_KEY"),
+        union.Secret(key="UNION_MCP_AUTH_TOKEN", env_var="AUTH_TOKEN"),
     ],
     requires_auth=False,
 )
