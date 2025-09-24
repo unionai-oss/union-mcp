@@ -79,7 +79,7 @@ https://union-internal.hosted.unionai.cloud/console/projects/union-mcp/domains/d
 🚀 Deployed Endpoint: https://mcp.apps.union-internal.hosted.unionai.cloud
 ```
 
-# Rotating the authentication token
+## Rotating the authentication token
 
 For security reasons, you may want to rotate the authentication token. To do so, override the existing secret:
 
