@@ -4,6 +4,10 @@ globs:
 alwaysApply: true
 ---
 
+# Union MCP v1
+
+This file contains rules for using the Union MCP v1 server.
+
 # Prerequisites
 
 If it's unclear what project and domain to use, ask the user for the project and domain that they are trying to access.
