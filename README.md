@@ -14,7 +14,7 @@ Install `uv` and the `union-mcp` package:
 
 ```bash
 pip install uv
-uv sync
+uv sync --extra v1
 ```
 
 Activate the virtual environment:
@@ -58,7 +58,7 @@ union create secret --project $UNION_PROJECT UNION_MCP_AUTH_TOKEN --domain $UNIO
 Then deploy the app:
 
 ```bash
-union deploy apps --project $UNION_PROJECT app.py $APP_NAME
+union deploy apps --project $UNION_PROJECT app_v1.py $APP_NAME
 ```
 
 This command will output the URL of the deployed app that look something like:

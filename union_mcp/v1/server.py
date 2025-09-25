@@ -1,13 +1,11 @@
 """Union MCP server."""
 
-import os
-import typing
 from datetime import timedelta
-from functools import wraps
 
 from mcp.server.fastmcp import FastMCP, Context
 
 import union_mcp.v1.resources as resources
+from union_mcp.common.auth import require_auth
 
 
 instructions = """
@@ -20,40 +18,16 @@ user for the project and domain that they are trying to access.
 
 # Create an MCP server
 mcp = FastMCP(
-    name="Union MCP",
+    name="Union v1 MCP",
     instructions=instructions,
 )
-
-VALID_AUTH_TOKEN = os.environ["AUTH_TOKEN"]
 
 
 def _remote(project: str, domain: str):
     import union
 
-    return union.UnionRemote(
-        default_project=project,
-        default_domain=domain,
-    )
+    return union.UnionRemote(default_project=project, default_domain=domain)
 
-def require_auth(func: typing.Callable):
-    """Decorator to require authentication for FastMCP handlers"""
-
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        # Extract context from kwargs (FastMCP passes context)
-        ctx: Context = kwargs.get('ctx')
-        auth_header = ctx.request_context.request.headers.get('Authorization', '')
-        if auth_header.startswith('Bearer '):
-            auth_token = auth_header[7:]
-        else:
-            raise ValueError("Authentication required: Invalid or missing token")
-
-        if auth_token != VALID_AUTH_TOKEN:
-            raise ValueError("Authentication required: Invalid or missing token")
-
-        return func(*args, **kwargs)
-
-    return wrapper
 
 @mcp.tool()
 @require_auth
@@ -137,11 +111,25 @@ def get_task(name: str, project: str, domain: str, ctx: Context) -> str:
 @mcp.tool()
 @require_auth
 def get_execution(name: str, project: str, domain: str, ctx: Context) -> dict:
-    """Get personalized union execution."""
+    """Get union execution."""
     print(f"Getting execution {name} in project {project} and domain {domain}")
     remote = _remote(project, domain)
     execution = remote.fetch_execution(name=name, project=project, domain=domain)
     return resources.proto_to_json(execution.to_flyte_idl())
+
+
+@mcp.tool()
+@require_auth
+def get_execution_io(name: str, project: str, domain: str, ctx: Context) -> dict:
+    """Get union execution inputs and outputs."""
+    print(f"Getting execution {name} in project {project} and domain {domain}")
+    remote = _remote(project, domain)
+    execution = remote.fetch_execution(name=name, project=project, domain=domain)
+    execution = remote.wait(execution, poll_interval=timedelta(seconds=2))
+    return {
+        "inputs": {k: v for k, v in execution.inputs.items() if v is not None},
+        "outputs": {k: v for k, v in execution.outputs.items() if v is not None},
+    }
 
 
 @mcp.tool()

@@ -1,0 +1,8 @@
+admin:
+  endpoint: dns:///union-internal.hosted.unionai.cloud
+image:
+  builder: remote
+task:
+  org: union-internal
+  project: union-mcp
+  domain: development
