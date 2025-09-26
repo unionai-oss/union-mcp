@@ -1,0 +1,8 @@
+admin:
+  endpoint: dns:///demo.hosted.unionai.cloud
+image:
+  builder: local
+task:
+  domain: development
+  org: demo
+  project: union-mcp

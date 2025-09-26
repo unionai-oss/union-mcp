@@ -45,7 +45,7 @@ export APP_PORT=8000  # use custom app port
 Create a Flyte v2 config file:
 
 ```bash
-uv run --with '.[v2]' flyte create config --host <host> --project $UNION_PROJECT --domain $UNION_DOMAIN
+uv run --with '.[v2]' flyte create config --endpoint <endpoint> --project $UNION_PROJECT --domain $UNION_DOMAIN
 ```
 
 Register dummy workflows for testing (optional):
