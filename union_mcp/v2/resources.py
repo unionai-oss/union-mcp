@@ -7,7 +7,7 @@ async def run_task(
     project: str | None = None,
     domain: str | None = None,
     version: str | None = None,
-) -> flyte.remote.Run:
+) -> flyte.remote.ActionDetails:
     task = flyte.remote.Task.get(
         name=name,
         project=project,
@@ -15,7 +15,8 @@ async def run_task(
         version=version,
         auto_version="latest" if version is None else None,
     )
-    return flyte.run(task, **inputs)
+    run: flyte.remote.Run = flyte.run(task, **inputs)
+    return await run.action.details()
 
 
 async def get_task(
@@ -33,10 +34,9 @@ async def get_task(
     ).fetch()
 
 
-async def get_run_details(name: str) -> flyte.remote.Run:
+async def get_run_details(name: str) -> flyte.remote.ActionDetails:
     run = flyte.remote.Run.get(name=name)
-    details = await run.action.details()
-    return details
+    return await run.action.details()
 
 
 async def get_run_io(name: str) -> tuple[flyte.remote.ActionInputs, flyte.remote.ActionOutputs]:

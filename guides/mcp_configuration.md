@@ -114,9 +114,15 @@ Replace the `url` with the URL of the deployed app and `<your-token>` with the a
   "mcpServers": {
     "Union MCP": {
       // Use "https://mcp-v2.apps.union-internal.hosted.unionai.cloud/sse" for v2
-      "url": "https://mcp.apps.union-internal.hosted.unionai.cloud/sse",
-      "headers": {
-        "Authorization": "Bearer <UNION_MCP_AUTH_TOKEN>"
+      "command": "npx",
+      "args": [
+        "mcp-remote",
+        "https://mcp.apps.union-internal.hosted.unionai.cloud/sse",
+        "--header",
+        "Authorization: Bearer ${AUTH_TOKEN}"
+      ],
+      "env": {
+        "AUTH_TOKEN": "<UNION_MCP_AUTH_TOKEN>"
       }
     }
   }

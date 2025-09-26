@@ -43,7 +43,7 @@ async def run_task(
     project: str,
     domain: str,
     ctx: Context,
-) -> tuple[tuple, str]:
+) -> dict:
     ctx.info(f"Running task {name} in project {project} and domain {domain}")
     """Run a task with natural language.
 
@@ -62,9 +62,7 @@ async def run_task(
     """
     # Based on the prompt and inputs dictionary, determine the task
     _init(project, domain)
-    run = await resources.run_task(name, inputs, project, domain)
-    run.wait()
-    return run.outputs().to_dict(), run.url
+    return (await resources.run_task(name, inputs, project, domain)).to_dict()
 
 
 @mcp.tool()

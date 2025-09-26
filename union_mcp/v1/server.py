@@ -37,7 +37,7 @@ def run_task(
     project: str,
     domain: str,
     ctx: Context,
-) -> tuple[dict, str]:
+) -> dict:
     ctx.info(f"Running task {name} in project {project} and domain {domain}")
     """Run a task with natural language.
 
@@ -58,10 +58,7 @@ def run_task(
     remote = _remote(project, domain)
     task = remote.fetch_task(project=project, domain=domain, name=name)
     execution = remote.execute(task, inputs, project=project, domain=domain)
-    execution = remote.wait(execution, poll_interval=timedelta(seconds=2))
-    outputs = {k: v for k, v in execution.outputs.items() if v is not None}
-    url = remote.generate_console_url(execution)
-    return outputs, url
+    return resources.proto_to_json(execution.to_flyte_idl())
 
 
 @mcp.tool()
