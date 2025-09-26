@@ -26,7 +26,7 @@ app = App(
     requests=union.Resources(cpu=2, mem="1Gi"),
     secrets=[
         union.Secret(key="EAGER_API_KEY", env_var="UNION_API_KEY"),
-        union.Secret(key="UNION_MCP_AUTH_TOKEN", env_var="AUTH_TOKEN"),
+        union.Secret(key="UNION_MCP_AUTH_TOKEN", env_var="UNION_MCP_AUTH_TOKEN"),
     ],
     requires_auth=False,
 )

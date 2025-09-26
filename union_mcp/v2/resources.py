@@ -50,5 +50,5 @@ async def list_tasks(
 ) -> list[flyte.remote.Task]:
     tasks = []
     for task in flyte.remote.Task.listall(project=project, domain=domain):
-        tasks.append(get_task(task.name, project=project, domain=domain))
+        tasks.append(await get_task(task.name, project=project, domain=domain))
     return tasks

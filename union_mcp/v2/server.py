@@ -6,7 +6,7 @@ import flyte
 from mcp.server.fastmcp import FastMCP, Context
 
 import union_mcp.v2.resources as resources
-from union_mcp.common.auth import require_auth_async
+from union_mcp.common.auth import require_auth
 
 
 instructions = """
@@ -36,7 +36,7 @@ def _init(project: str, domain: str):
 
 
 @mcp.tool()
-@require_auth_async
+@require_auth
 async def run_task(
     name: str,
     inputs: dict,
@@ -68,7 +68,7 @@ async def run_task(
 
 
 @mcp.tool()
-@require_auth_async
+@require_auth
 async def get_task(name: str, project: str, domain: str, ctx: Context) -> dict:
     """Get a union task."""
     print(f"Getting task {name} in project {project} and domain {domain}")
@@ -78,7 +78,7 @@ async def get_task(name: str, project: str, domain: str, ctx: Context) -> dict:
 
 
 @mcp.tool()
-@require_auth_async
+@require_auth
 async def get_run(name: str, project: str, domain: str, ctx: Context) -> dict:
     """Get personalized union execution."""
     print(f"Getting execution {name} in project {project} and domain {domain}")
@@ -87,7 +87,7 @@ async def get_run(name: str, project: str, domain: str, ctx: Context) -> dict:
 
 
 @mcp.tool()
-@require_auth_async
+@require_auth
 async def get_run_io(name: str, project: str, domain: str, ctx: Context) -> dict:
     """Get personalized union execution."""
     print(f"Getting execution {name} in project {project} and domain {domain}")
@@ -100,7 +100,7 @@ async def get_run_io(name: str, project: str, domain: str, ctx: Context) -> dict
 
 
 @mcp.tool()
-@require_auth_async
+@require_auth
 async def list_tasks(
     project: str,
     domain: str,
