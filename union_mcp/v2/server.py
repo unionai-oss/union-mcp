@@ -23,13 +23,13 @@ mcp = FastMCP(
     instructions=instructions,
 )
 
-UNION_ORG = os.environ["UNION_ORG"]
+FLYTE_ORG = os.environ["FLYTE_ORG"]
 
 
 def _init(project: str, domain: str):
     flyte.init(
         api_key=os.environ["FLYTE_API_KEY"],
-        org=UNION_ORG,
+        org=FLYTE_ORG,
         project=project,
         domain=domain,
     )
@@ -108,3 +108,21 @@ async def list_tasks(
     _init(project, domain)
     print(f"Listing tasks in project {project} and domain {domain}")
     return [task.to_dict() for task in await resources.list_tasks(project, domain)]
+
+
+@mcp.tool()
+@require_auth
+async def register_task(script: str, project: str, domain: str, ctx: Context) -> dict:
+    """Register a task with natural language.
+
+    - Based on the script, determine the task to register
+    - Format the script so that it matches the task function signature
+    - Register the task
+    
+    Args:
+        script: Script to register the task from.
+        project: Project to register the task in.
+        domain: Domain to register the task in.
+    """
+    _init(project, domain)
+    return (await resources.register_task(script, project, domain)).to_dict()

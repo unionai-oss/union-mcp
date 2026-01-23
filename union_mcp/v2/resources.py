@@ -52,3 +52,7 @@ async def list_tasks(
     for task in flyte.remote.Task.listall(project=project, domain=domain):
         tasks.append(await get_task(task.name, project=project, domain=domain))
     return tasks
+
+
+async def register_task(script: str, project: str, domain: str) -> flyte.remote.Task:
+    flyte.deploy(...)

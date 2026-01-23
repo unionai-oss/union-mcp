@@ -33,10 +33,9 @@ uv run --with union union create login --host <host>
 Then export environment variables:
 
 ```bash
-export UNION_CONFIG=...  # path to union config file
-export UNION_ORG=union-internal  # use custom org name
-export UNION_PROJECT=union-mcp  # use custom project name
-export UNION_DOMAIN=development  # use custom domain name
+export FLYTE_ORG=union-internal  # use custom org name
+export FLYTE_PROJECT=union-mcp  # use custom project name
+export FLYTE_DOMAIN=development  # use custom domain name
 export APP_NAME=union-mcp-v2  # use custom app name
 export APP_SUBDOMAIN=mcp-v2  # use custom app subdomain
 export APP_PORT=8000  # use custom app port
@@ -45,21 +44,21 @@ export APP_PORT=8000  # use custom app port
 Create a Flyte v2 config file:
 
 ```bash
-uv run --with '.[v2]' flyte create config --endpoint <endpoint> --project $UNION_PROJECT --domain $UNION_DOMAIN
+uv run --with '.[v2]' flyte create config --endpoint $FLYTE_ORG --project $FLYTE_PROJECT --domain $FLYTE_DOMAIN
 ```
 
 Register dummy workflows for testing (optional):
 
 ```bash
-uv run --with '.[v2]' flyte deploy --project $UNION_PROJECT --domain $UNION_DOMAIN examples/v2/workflows.py env
+uv run --with '.[v2]' flyte deploy --project $FLYTE_PROJECT --domain $FLYTE_DOMAIN examples/v2/workflows.py env
 ```
 
 Create a secret for the authentication token:
 
 ```bash
 uv run --with union union create secret \
-    --project $UNION_PROJECT \
-    --domain $UNION_DOMAIN \
+    --project $FLYTE_PROJECT \
+    --domain $FLYTE_DOMAIN \
     UNION_MCP_AUTH_TOKEN \
     --value <your-token>
 ```
@@ -67,5 +66,5 @@ uv run --with union union create secret \
 Then deploy the app:
 
 ```bash
-uv run --with union union deploy apps --project $UNION_PROJECT --domain $UNION_DOMAIN app_v2.py $APP_NAME
+uv run --with '.[v2]' flyte deploy --project $FLYTE_PROJECT --domain $FLYTE_DOMAIN app_v2.py app
 ```

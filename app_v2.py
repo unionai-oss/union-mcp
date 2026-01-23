@@ -1,46 +1,50 @@
 # /// script
 # requires-python = "==3.12"
-# dependencies = ["union"]
+# dependencies = ["flyte==2.0.0b49"]
 # ///
 
 import os
-import union
-from union.app import App
+import logging
+import pathlib
+
+import flyte
+from flyte.app import AppEnvironment, Domain
 
 
 APP_NAME = os.getenv("APP_NAME", "union-mcp-v2")
-APP_SUBDOMAIN = os.getenv("APP_SUBDOMAIN", "mcp-v2-test")
+APP_SUBDOMAIN = os.getenv("APP_SUBDOMAIN", "mcp-v2")
 APP_PORT = int(os.getenv("APP_PORT", 8000))
-UNION_ORG = os.getenv("UNION_ORG", "union-internal")
+FLYTE_ORG = os.getenv("FLYTE_ORG", "union-internal")
 
 
 image = (
-    union.ImageSpec(
-        name="union-mcp-server",
-        packages=[
-            "uv",
-            "union-runtime>=0.1.17",
-            "mcp[cli]",
-        ],
-        builder="union",
-    )
-    # install flyte separately to avoid obstore version conflict with union-runtime
-    .with_commands(["pip install flyte==2.0.0b22"])
+    flyte.Image.from_debian_base(name="union-mcp-server")
+    .with_pip_packages("uv", "mcp[cli]", "flyte==2.0.0b49")
 )
 
 
-app = App(
+app = AppEnvironment(
     name=APP_NAME,
-    subdomain=APP_SUBDOMAIN,
+    # domain=Domain(subdomain=APP_SUBDOMAIN),
     port=APP_PORT,
     include=["examples/v2/server.py", "union_mcp"],
-    container_image=image,
+    image=image,
     args="mcp run examples/v2/server.py --transport sse",
-    requests=union.Resources(cpu=2, mem="1Gi"),
+    resources=flyte.Resources(cpu=2, memory="1Gi"),
     secrets=[
-        union.Secret(key="EAGER_API_KEY", env_var="FLYTE_API_KEY"),
-        union.Secret(key="UNION_MCP_AUTH_TOKEN", env_var="UNION_MCP_AUTH_TOKEN"),
+        flyte.Secret(key="EAGER_API_KEY", as_env_var="FLYTE_API_KEY"),
+        flyte.Secret(key="UNION_MCP_AUTH_TOKEN", as_env_var="UNION_MCP_AUTH_TOKEN"),
     ],
-    env={"UNION_ORG": UNION_ORG},
+    env_vars={"FLYTE_ORG": FLYTE_ORG, "DISABLE_AUTH": "0"},
     requires_auth=False,
 )
+
+
+if __name__ == "__main__":
+    flyte.init_from_config(
+        root_dir=pathlib.Path(__file__).parent,
+        log_level=logging.DEBUG,
+    )
+    deployments = flyte.deploy(app)
+    d = deployments[0]
+    print(f"Deployed app: {d.table_repr()}")
