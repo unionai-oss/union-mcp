@@ -97,7 +97,7 @@ async def run_script(script: str, project: str, domain: str) -> dict:
 
 
 def search_flyte_examples(
-    pattern: str, examples_dir: str = "flyte-sdk/examples"
+    pattern: str, examples_dir: str,
 ) -> str:
     """Grep for a pattern in flyte-sdk/examples, return top 3 files with most matches as markdown.
 

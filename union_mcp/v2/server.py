@@ -158,7 +158,15 @@ async def flyte_script_example(ctx: Context) -> str:
 
 @mcp.tool()
 @require_auth
-async def search_flyte_examples(pattern: str, ctx: Context) -> str:
-    """Grep the Flyte example repository for a pattern."""
-    ctx.info("Getting example Flyte script")
-    return resources.search_flyte_examples(pattern)
+async def search_flyte_sdk_examples(pattern: str, ctx: Context) -> str:
+    """Search the Flyte SDK examples repository for files that match a pattern."""
+    ctx.info("Getting example Flyte SDK example scripts")
+    return resources.search_flyte_examples(pattern, "/root/flyte-sdk/examples")
+
+
+@mcp.tool()
+@require_auth
+async def search_flyte_docs_examples(pattern: str, ctx: Context) -> str:
+    """Search the official Flyte Docs examples repository for files that match a pattern."""
+    ctx.info("Getting example Flyte docs")
+    return resources.search_flyte_examples(pattern, "/root/unionai-examples/v2")

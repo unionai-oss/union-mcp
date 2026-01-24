@@ -23,7 +23,8 @@ image = (
     .with_apt_packages("git")
     .with_commands(
         [
-            "git clone https://github.com/flyteorg/flyte-sdk.git /root/flyte-sdk --branch main"
+            "git clone https://github.com/flyteorg/flyte-sdk.git /root/flyte-sdk --branch main",
+            "git clone https://github.com/flyteorg/unionai-examples.git /root/unionai-examples --branch main",
         ]
     )
 )
