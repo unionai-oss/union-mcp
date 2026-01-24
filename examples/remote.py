@@ -53,7 +53,9 @@ def list_tasks() -> list[TaskMetadata]:
             name=task.id.name,
             description=task.short_description,
             inputs=_proto_to_json(task.closure.compiled_task.template.interface.inputs),
-            outputs=_proto_to_json(task.closure.compiled_task.template.interface.outputs),
+            outputs=_proto_to_json(
+                task.closure.compiled_task.template.interface.outputs
+            ),
         )
         for task in tasks
     ]
@@ -68,8 +70,12 @@ def list_workflows() -> list[WorkflowMetadata]:
         WorkflowMetadata(
             name=workflow.id.name,
             description=workflow.short_description,
-            inputs=_proto_to_json(workflow.closure.compiled_workflow.primary.template.interface.inputs),
-            outputs=_proto_to_json(workflow.closure.compiled_workflow.primary.template.interface.outputs),
+            inputs=_proto_to_json(
+                workflow.closure.compiled_workflow.primary.template.interface.inputs
+            ),
+            outputs=_proto_to_json(
+                workflow.closure.compiled_workflow.primary.template.interface.outputs
+            ),
         )
         for workflow in workflows
     ]

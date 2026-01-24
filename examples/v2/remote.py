@@ -30,13 +30,17 @@ def get_task(
     domain: str | None = None,
     version: str | None = None,
 ) -> dict:
-    return flyte.remote.Task.get(
-        name=name,
-        project=project,
-        domain=domain,
-        version=version,
-        auto_version="latest" if version is None else None,
-    ).fetch().to_dict()
+    return (
+        flyte.remote.Task.get(
+            name=name,
+            project=project,
+            domain=domain,
+            version=version,
+            auto_version="latest" if version is None else None,
+        )
+        .fetch()
+        .to_dict()
+    )
 
 
 async def get_run_details(_run: flyte.remote.Run) -> dict:
@@ -57,7 +61,6 @@ def list_tasks(
     for task in flyte.remote.Task.listall(project=project, domain=domain):
         tasks.append(get_task(task.name, project=project, domain=domain))
     return tasks
-
 
 
 if __name__ == "__main__":

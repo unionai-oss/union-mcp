@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "An MCP server to connect to Union resources and services."
 readme = "README.md"
 license = "Apache-2.0"
-requires-python = ">=3.10,<3.13"
+requires-python = ">=3.11,<3.13"
 authors = [
     { name = "Niels Bantilan" }
 ]
@@ -24,6 +24,7 @@ v1 = [
 ]
 v2 = [
     "flyte>=2.0.0b49",
+    "uv",
 ]
 dev = [
     "black",

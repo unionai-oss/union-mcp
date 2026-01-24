@@ -19,7 +19,7 @@ pip install uv
 ## Running a local server
 
 ```bash
-DISABLE_AUTH=1 uv run --with '.[v2]' union run mcp run examples/v2/server.py --transport sse
+DISABLE_AUTH=1 uv run --with '.[v2]' mcp run examples/v2/server.py --transport sse
 ```
 
 ## Deploy app to Union

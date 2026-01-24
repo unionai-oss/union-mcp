@@ -3,7 +3,7 @@ import flyte
 
 env = flyte.TaskEnvironment(
     name="oomer_env",
-    resources=flyte.Resources(cpu="2", memory="250Mi")  # ❌ this causes an OOM!
+    resources=flyte.Resources(cpu="2", memory="250Mi"),  # ❌ this causes an OOM!
 )
 
 

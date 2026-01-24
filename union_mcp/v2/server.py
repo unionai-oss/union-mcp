@@ -4,6 +4,7 @@ import os
 
 import flyte
 from mcp.server.fastmcp import FastMCP, Context
+from mcp.server.transport_security import TransportSecuritySettings
 
 import union_mcp.v2.resources as resources
 from union_mcp.common.auth import require_auth
@@ -21,15 +22,16 @@ user for the project and domain that they are trying to access.
 mcp = FastMCP(
     name="Union v2 MCP",
     instructions=instructions,
+    transport_security=TransportSecuritySettings(
+        enable_dns_rebinding_protection=False,
+    ),
 )
-
-FLYTE_ORG = os.environ["FLYTE_ORG"]
 
 
 def _init(project: str, domain: str):
     flyte.init(
         api_key=os.environ["FLYTE_API_KEY"],
-        org=FLYTE_ORG,
+        org=os.environ["FLYTE_ORG"],
         project=project,
         domain=domain,
     )
@@ -112,17 +114,51 @@ async def list_tasks(
 
 @mcp.tool()
 @require_auth
-async def register_task(script: str, project: str, domain: str, ctx: Context) -> dict:
-    """Register a task with natural language.
+async def list_runs(task_name: str, project: str, domain: str, ctx: Context) -> dict:
+    """Get a union task inputs and outputs."""
+    print(f"Getting runs of {task_name} in project {project} and domain {domain}")
+    _init(project, domain)
+    runs = await resources.list_runs(task_name, project, domain)
+    return [(await run.action.details()).to_dict() for run in runs]
+
+
+@mcp.tool()
+@require_auth
+async def run_script(script: str, project: str, domain: str, ctx: Context) -> dict:
+    """Run a task script provided by the user.
 
     - Based on the script, determine the task to register
     - Format the script so that it matches the task function signature
     - Register the task
-    
+
     Args:
         script: Script to register the task from.
         project: Project to register the task in.
         domain: Domain to register the task in.
     """
     _init(project, domain)
-    return (await resources.register_task(script, project, domain)).to_dict()
+    run_script_result = await resources.run_script(script, project, domain)
+    return run_script_result
+
+
+@mcp.tool()
+@require_auth
+async def flyte_script_format(ctx: Context) -> str:
+    """Get the template format of a Flyte script."""
+    return resources.script_format()
+
+
+@mcp.tool()
+@require_auth
+async def flyte_script_example(ctx: Context) -> str:
+    """Get a full example of a Flyte script."""
+    ctx.info("Getting example Flyte script")
+    return resources.script_example()
+
+
+@mcp.tool()
+@require_auth
+async def search_flyte_examples(pattern: str, ctx: Context) -> str:
+    """Grep the Flyte example repository for a pattern."""
+    ctx.info("Getting example Flyte script")
+    return resources.search_flyte_examples(pattern)

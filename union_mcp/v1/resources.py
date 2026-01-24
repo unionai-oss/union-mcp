@@ -26,7 +26,9 @@ def proto_to_json(proto: Message) -> dict:
     return json.loads(MessageToJson(proto))
 
 
-def list_tasks(remote: union.UnionRemote, project: str, domain: str) -> list[TaskMetadata]:
+def list_tasks(
+    remote: union.UnionRemote, project: str, domain: str
+) -> list[TaskMetadata]:
     from flytekit.models.common import NamedEntityIdentifier
 
     id = NamedEntityIdentifier(project=project, domain=domain)
@@ -37,13 +39,17 @@ def list_tasks(remote: union.UnionRemote, project: str, domain: str) -> list[Tas
             name=task.id.name,
             description=task.short_description,
             inputs=proto_to_json(task.closure.compiled_task.template.interface.inputs),
-            outputs=proto_to_json(task.closure.compiled_task.template.interface.outputs),
+            outputs=proto_to_json(
+                task.closure.compiled_task.template.interface.outputs
+            ),
         )
         for task in tasks
     ]
 
 
-def list_workflows(remote: union.UnionRemote, project: str, domain: str) -> list[WorkflowMetadata]:
+def list_workflows(
+    remote: union.UnionRemote, project: str, domain: str
+) -> list[WorkflowMetadata]:
     from flytekit.models.common import NamedEntityIdentifier
 
     id = NamedEntityIdentifier(project=project, domain=domain)
@@ -53,8 +59,12 @@ def list_workflows(remote: union.UnionRemote, project: str, domain: str) -> list
         WorkflowMetadata(
             name=workflow.id.name,
             description=workflow.short_description,
-            inputs=proto_to_json(workflow.closure.compiled_workflow.primary.template.interface.inputs),
-            outputs=proto_to_json(workflow.closure.compiled_workflow.primary.template.interface.outputs),
+            inputs=proto_to_json(
+                workflow.closure.compiled_workflow.primary.template.interface.inputs
+            ),
+            outputs=proto_to_json(
+                workflow.closure.compiled_workflow.primary.template.interface.outputs
+            ),
         )
         for workflow in workflows
     ]
