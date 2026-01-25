@@ -1,22 +1,51 @@
 # Demo
 
+This demo shows how to use the Union MCP server to run compute- and io-intensive
+tools on a Flyte cluster.
+
+## Setup
+
+### Cursor
+
+Add the following to your `~/.cursor/mcp.json` file:
+
+```json
+{
+  "mcpServers": {
+    "Union MCP": {
+      "url": "https://mcp.apps.union-internal.hosted.unionai.cloud/sse"
+    }
+  }
+}
+```
+
+### Claude Code
+
+### Claude Desktop
+
 ## Prompts
+
+### Toy example
+
+```
+Create a flyte script that fans out tasks to compute the square of the numbers from 1 to 1_000_000, then sums the squares.
+```
 
 ### Visualization
 
 ```
-Create a flyte script that downloads the dataset at https://github.com/plotly/datasets/blob/master/timeseries.csv and creates a visualization in plotly and run it remotely. The flyte script should use flyte.report to render the visualization.
+Create and run a flyte script that downloads the dataset at https://github.com/plotly/datasets/blob/master/timeseries.csv and creates a visualization in plotly and run it remotely. The flyte script should use flyte.report to render a beautiful visualization.
 ```
 
 ### Model training
 
 ```
-Run a flyte script that performs hyperparameter optimization trying a random forest model on the penguins data. Assess f1 score as the evaluation metric, and visualize the results using flyte.report.
+Run a flyte script that performs hyperparameter optimization that uses flyte to parallelize the training runs for training a random forest model on the penguins data. Assess f1 score as the evaluation metric, and visualize the results using flyte.report. Make
+sure the report style is beautiful.
 ```
 
-
-### Batch inference
+### GPU Batch inference
 
 ```
-Run a flyte script that embeds the "review" column of the "scikit-learn/imdb" huggingface dataset using the "answerdotai/ModernBERT-base" model. Save the embeddings to a json file using flyte.io.File
+Run a flyte script that embeds the "review" column of the "scikit-learn/imdb" huggingface dataset using the "answerdotai/ModernBERT-base" model on a T4 GPU. Use a driver-worker pattern where the driver is a CPU environment and the worker is a GPU environment. Save the embeddings to a json file using flyte.io.File, and use flyte.report to visualize a preview of text the contents of the first five documents and the distribution of their embeddings.
 ```

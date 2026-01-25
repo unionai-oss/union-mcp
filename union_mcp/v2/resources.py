@@ -69,7 +69,14 @@ async def build_script_image(script: str) -> dict:
 
     try:
         proc = subprocess.run(
-            ["uv", "run", "--prerelease=allow", filename, "--build"],
+            [
+                "uv",
+                "run",
+                "--with", "flyte@git+https://github.com/flyteorg/flyte-sdk.git@378af3e0",
+                "--prerelease=allow",
+                filename,
+                "--build",
+            ],
             capture_output=True,
             env=os.environ,
             text=True,
@@ -106,16 +113,18 @@ async def run_script_remote(script: str) -> dict:
 
 
 def search_flyte_examples(
-    pattern: str, examples_dir: str, top_n: int = 3,
+    pattern: str, examples_dir: str, top_n: int = 3, context_lines: int = 5,
 ) -> str:
     """Grep for a pattern in flyte-sdk/examples, return top n files with most matches as markdown.
 
     Args:
         pattern: The pattern to search for.
         examples_dir: The directory to search in. Defaults to "flyte-sdk/examples".
+        top_n: The number of top files to return. Defaults to 3.
+        context_lines: The number of lines to show before and after each match. Defaults to 5.
 
     Returns:
-        A markdown-formatted string containing the contents of the top 3 files with the most matches.
+        A markdown-formatted string containing the matching lines with context from the top files.
     """
     # Use grep -c to count matches per file
     proc = subprocess.run(
@@ -158,18 +167,24 @@ def search_flyte_examples(
     for filepath, count in top_files:
         markdown_parts.append(f"## `{filepath}` ({count} matches)\n")
 
-        # Read file contents
+        # Get matching lines with context using grep -B and -A
         try:
-            with open(filepath, "r") as f:
-                content = f.read()
+            context_proc = subprocess.run(
+                ["grep", "-n", f"-B{context_lines}", f"-A{context_lines}", pattern, filepath],
+                capture_output=True,
+                text=True,
+            )
 
-            # Determine language for syntax highlighting
-            ext = os.path.splitext(filepath)[1].lstrip(".")
-            lang = ext if ext else "text"
+            if context_proc.returncode == 0 and context_proc.stdout.strip():
+                # Determine language for syntax highlighting
+                ext = os.path.splitext(filepath)[1].lstrip(".")
+                lang = ext if ext else "text"
 
-            markdown_parts.append(f"```{lang}\n{content}\n```\n")
+                markdown_parts.append(f"```{lang}\n{context_proc.stdout.strip()}\n```\n")
+            else:
+                markdown_parts.append(f"*No context available for matches*\n")
         except (IOError, OSError) as e:
-            markdown_parts.append(f"*Error reading file: {e}*\n")
+            markdown_parts.append(f"*Error getting context: {e}*\n")
 
     return "\n".join(markdown_parts)
 
@@ -234,7 +249,8 @@ if __name__ == "__main__":
     )
     # THIS IS IMPORTANT: the script should be built first, then run
     if args.build:
-        flyte.build(env.image)
+        uri = flyte.build(env.image, wait=False)
+        print(f"build run url: {{uri}}")
     else:
         # run the task in remote mode
         run = flyte.with_runcontext(mode="remote").run(main, <main-arguments>)
@@ -310,7 +326,8 @@ if __name__ == "__main__":
     )
     # THIS IS IMPORTANT: the script should be built first, then run
     if args.build:
-        flyte.build(env.image)
+        uri = flyte.build(env.image, wait=False)
+        print(f"build run url: {{uri}}")
     else:
         # run the task in remote mode
         run = flyte.with_runcontext(mode="remote").run(main)

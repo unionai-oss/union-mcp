@@ -1,12 +1,12 @@
 # /// script
 # dependencies = [
+#    "flyte>=2.0.0b49",  # THIS IS IMPORTANT: it makes sure the script can be run on the MCP server
 #    "scikit-learn==1.6.1",
 #    "pandas",
 #    "pyarrow",
 #    "joblib",
 #    "mashumaro",
-#    "plotly",
-#    "flyte>=2.0.0b49",
+#    "matplotlib",
 # ]
 # ///
 
@@ -28,14 +28,18 @@ from flyte.io import Dir, File
 env = flyte.TaskEnvironment(
     name="distributed_random_forest",
     resources=flyte.Resources(cpu=1, memory="250Mi"),
-    image=flyte.Image.from_uv_script(
-        __file__,
-        name="flyte",
-        registry="ghcr.io/flyteorg",
-        platform=("linux/amd64", "linux/arm64"),
-        python_version=(3, 13),
-        pre=True,
-    ).with_apt_packages("ca-certificates"),
+    image=(
+        flyte.Image
+        .from_uv_script(
+            __file__,
+            name="flyte",
+            registry="ghcr.io/flyteorg",
+            platform=("linux/amd64", "linux/arm64"),
+            python_version=(3, 13),
+            pre=True,
+        )
+        .with_apt_packages("ca-certificates")
+    ),
 )
 
 
@@ -219,8 +223,10 @@ if __name__ == "__main__":
         image_builder="remote",
     )
     if args.build:
-        flyte.build(env.image)
+        uri = flyte.build(env.image, wait=False)
+        print(f"build run url: {uri}")
     else:
+        # run the task in remote mode
         run = flyte.with_runcontext(mode="remote").run(main)
         print(run.url)
 

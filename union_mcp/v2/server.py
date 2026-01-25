@@ -21,6 +21,8 @@ mcp = FastMCP(
     transport_security=TransportSecuritySettings(
         enable_dns_rebinding_protection=False,
     ),
+    stateless_http=True,
+    json_response=True,
 )
 
 
@@ -40,7 +42,7 @@ async def run_task(
     inputs: dict,
     ctx: Context,
 ) -> dict:
-    ctx.info(f"Running task {name}")
+    await ctx.info(f"Running task {name}")
     """Run a task with natural language.
 
     - Based on the prompt and inputs dictionary, determine the task to run
@@ -152,33 +154,19 @@ async def run_script_remote(
 ) -> dict:
     """Run a task script provided by the user on remote Flyte cluster.
 
-    IMPORTANT: Make sure the script is built first using build_script_image tool, which should be called before this tool.
-    This will asynchronously build the image and return the result, which contains the build task url. You can use the
-    build task url to monitor the build progress.
+    IMPORTANT: Make sure the script is built first using build_script_image tool, which should be called before this
+    tool. This will asynchronously build the image and return the result, which contains the build task url. Make sure
+    that the build task is completed before running the script. Use the get_run tool to monitor the build task.
 
-    Make sure the the script is correctly formatted according to flyte_script_format.
+    Make sure the script is correctly formatted according to flyte_script_format.
     For a complete example, see flyte_script_example.
     
     Use search_flyte_sdk_examples and search_flyte_docs_examples to find examples
     that match your needs.
 
     Args:
-        script: Script to register the task from. The script should contain a main condtional block as
-        follows:
-
-        ```
-        if __name__ == "__main__":
-            flyte.init(
-                api_key=os.environ["FLYTE_API_KEY"],
-                org=os.environ["FLYTE_ORG"],
-                project=os.environ["FLYTE_PROJECT"],
-                domain=os.environ["FLYTE_DOMAIN"],
-                image_builder="remote",
-                log_level=os.getenv("LOG_LEVEL", "INFO"),
-            )
-            run = flyte.with_runcontext(mode="remote").run(<main-function>, <main-arguments>)
-            print(run.url)
-        ```
+        script: Script to register the task from. Use the flyte_script_format to make sure
+        the script is correctly formatted.
     """
     _init()
     return await resources.run_script_remote(script)
@@ -203,7 +191,7 @@ async def flyte_script_example(ctx: Context) -> str:
     Use search_flyte_sdk_examples and search_flyte_docs_examples to find examples
     that match your needs.
     """
-    ctx.info("Getting example Flyte script")
+    await ctx.info("Getting example Flyte script")
     return resources.script_example()
 
 
@@ -221,7 +209,7 @@ async def search_flyte_sdk_examples(
     Returns:
         A markdown-formatted string containing the contents of the top 3 files with the most matches.
     """
-    ctx.info("Getting example Flyte SDK example scripts")
+    await ctx.info("Getting example Flyte SDK example scripts")
     return resources.search_flyte_examples(pattern, "/root/flyte-sdk/examples", top_n=3)
 
 
@@ -239,5 +227,5 @@ async def search_flyte_docs_examples(
     Returns:
         A markdown-formatted string containing the contents of the top 3 files with the most matches.
     """
-    ctx.info("Getting example Flyte docs")
+    await ctx.info("Getting example Flyte docs")
     return resources.search_flyte_examples(pattern, "/root/unionai-examples/v2", top_n=3)
