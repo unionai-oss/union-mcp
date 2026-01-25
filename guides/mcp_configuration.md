@@ -3,6 +3,31 @@
 Once you've followed the steps in the [deployment guides](./deployment_v1.md) or [deployment guides](./deployment_v2.md),
 you can configure your MCP client to use the Union MCP server.
 
+## Create a Union api key
+
+Create a Union api key:
+
+```bash
+uv run --with flyteplugins-union --with flyte==2.0.0b50 flyte create api-key --name <my-api-key>
+```
+
+You'll see something like this:
+
+```
+╭──────────────────────────────────────────── API Key Created Successfully ────────────────────────────────────────────╮
+│ Client ID: <my-api-key>                                                                                              │
+│                                                                                                                      │
+│ ⚠️ The following API key will only be shown once. Be sure to keep it safe!                                           │
+│                                                                                                                      │
+│ Configure your headless CLI by setting the following environment variable:                                           │
+│                                                                                                                      │
+│ export                                                                                                               │
+│ FLYTE_API_KEY="<secret-value>"                                                                                       │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+```
+
+Make sure to save the `<secret-value>` in a secure location.
+
 ## Use with Cursor IDE
 
 Simply update the `~/.cursor/mcp.json` or `<project>/.cursor/mcp.json` file with
@@ -24,12 +49,11 @@ either a local or remote MCP server
         "/Users/username/union-mcp[v1]",
         "mcp",
         "run",
-        // Use "/Users/username/union-mcp/examples/v2/server.py" for v2
-        "/Users/username/union-mcp/examples/server.py"
+        "/Users/username/union-mcp/examples/v2/server.py"
       ],
       "env": {
         "DISABLE_AUTH": "1",
-        "FLYTE_API_KEY": "<FLYTE_API_KEY>"
+        "FLYTE_API_KEY": "<secret-value>"
       }
     }
   }
@@ -47,8 +71,7 @@ Replace the `url` with the URL of the deployed app and `<your-token>` with the a
 {
   "mcpServers": {
     "Union MCP": {
-      // Use "https://mcp-v2.apps.union-internal.hosted.unionai.cloud/sse" for v2
-      "url": "https://mcp.apps.union-internal.hosted.unionai.cloud/sse",
+      "url": "https://mcp-v2.apps.union-internal.hosted.unionai.cloud/mcp",
       "headers": {
         "Authorization": "Bearer <UNION_MCP_AUTH_TOKEN>"
       }
@@ -90,12 +113,11 @@ This will configure the `claude_desktop_config.json` configuration file located 
         "/Users/username/union-mcp[v1]",
         "mcp",
         "run",
-        // Use "/Users/username/union-mcp/examples/v2/server.py" for v2
-        "/Users/username/union-mcp/examples/server.py"
+        "/Users/username/union-mcp/examples/v2/server.py"
       ],
       "env": {
         "DISABLE_AUTH": "1",
-        "FLYTE_API_KEY": "<FLYTE_API_KEY>"
+        "FLYTE_API_KEY": "<secret-value>"
       }
     }
   }
@@ -113,17 +135,13 @@ Replace the `url` with the URL of the deployed app and `<your-token>` with the a
 {
   "mcpServers": {
     "Union MCP": {
-      // Use "https://mcp-v2.apps.union-internal.hosted.unionai.cloud/sse" for v2
       "command": "npx",
       "args": [
         "mcp-remote",
-        "https://mcp.apps.union-internal.hosted.unionai.cloud/sse",
+        "https://mcp-v2.apps.union-internal.hosted.unionai.cloud/mcp",
         "--header",
-        "Authorization: Bearer ${AUTH_TOKEN}"
+        "Authorization: Bearer <secret-value>"
       ],
-      "env": {
-        "AUTH_TOKEN": "<UNION_MCP_AUTH_TOKEN>"
-      }
     }
   }
 }

@@ -1,8 +1,8 @@
 admin:
-  endpoint: dns:///union-internal.hosted.unionai.cloud
+  endpoint: dns:///demo.hosted.unionai.cloud
 image:
   builder: remote
 task:
-  org: union-internal
-  project: union-mcp
   domain: development
+  org: demo
+  project: union-mcp

@@ -5,6 +5,7 @@ import os
 import flyte
 from mcp.server.fastmcp import FastMCP, Context
 from mcp.server.transport_security import TransportSecuritySettings
+from contextlib import asynccontextmanager
 
 import union_mcp.v2.resources as resources
 from union_mcp.common.auth import require_auth
@@ -12,6 +13,22 @@ from union_mcp.common.auth import require_auth
 
 instructions = """
 This MCP server is used to interact with Union v2 resources and services."""
+
+
+@asynccontextmanager
+async def app_lifespan(server: FastMCP):
+    """Manage application lifecycle with type-safe context."""
+    # Initialize on startup
+    PROJECT_NAME_ENV_VAR = "FLYTE_INTERNAL_EXECUTION_PROJECT"
+    DOMAIN_NAME_ENV_VAR = "FLYTE_INTERNAL_EXECUTION_DOMAIN"
+
+    # Startup: Initialize Flyte with passthrough authentication
+    await flyte.init_passthrough.aio(
+        project=os.getenv(PROJECT_NAME_ENV_VAR, None),
+        domain=os.getenv(DOMAIN_NAME_ENV_VAR, None),
+    )
+    print("Initialized Flyte passthrough auth")
+    yield
 
 
 # Create an MCP server
@@ -23,6 +40,7 @@ mcp = FastMCP(
     ),
     stateless_http=True,
     json_response=True,
+    lifespan=app_lifespan,
 )
 
 

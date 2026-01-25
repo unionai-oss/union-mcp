@@ -14,6 +14,7 @@ authors = [
 ]
 dependencies = [
     "mcp[cli]>=1.6.0",
+    "starlette",
     "pydantic",
 ]
 
