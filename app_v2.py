@@ -8,13 +8,15 @@ import logging
 import pathlib
 
 import flyte
-from flyte.app import AppEnvironment, Domain
+from flyte.app import AppEnvironment, Domain, Scaling
 
 
 APP_NAME = os.getenv("APP_NAME", "union-mcp-v2")
 APP_SUBDOMAIN = os.getenv("APP_SUBDOMAIN", "mcp-v2")
 APP_PORT = int(os.getenv("APP_PORT", 8000))
 FLYTE_ORG = os.getenv("FLYTE_ORG", "union-internal")
+FLYTE_PROJECT = os.getenv("FLYTE_PROJECT", "union-mcp")
+FLYTE_DOMAIN = os.getenv("FLYTE_DOMAIN", "development")
 
 
 image = (
@@ -24,7 +26,7 @@ image = (
     .with_commands(
         [
             "git clone https://github.com/flyteorg/flyte-sdk.git /root/flyte-sdk --branch main",
-            "git clone https://github.com/flyteorg/unionai-examples.git /root/unionai-examples --branch main",
+            "git clone https://github.com/unionai/unionai-examples.git /root/unionai-examples --branch main",
         ]
     )
 )
@@ -37,13 +39,20 @@ app = AppEnvironment(
     include=["examples/v2/server.py", "union_mcp"],
     image=image,
     args="mcp run examples/v2/server.py --transport sse",
-    resources=flyte.Resources(cpu=2, memory="4Gi", disk="10Gi"),
+    resources=flyte.Resources(cpu=3, memory="8Gi", disk="100Gi"),
     secrets=[
         flyte.Secret(key="EAGER_API_KEY", as_env_var="FLYTE_API_KEY"),
         flyte.Secret(key="UNION_MCP_AUTH_TOKEN", as_env_var="UNION_MCP_AUTH_TOKEN"),
     ],
-    env_vars={"FLYTE_ORG": FLYTE_ORG, "DISABLE_AUTH": "0"},
+    env_vars={
+        "FLYTE_ORG": FLYTE_ORG,
+        "FLYTE_PROJECT": FLYTE_PROJECT,
+        "FLYTE_DOMAIN": FLYTE_DOMAIN,
+        "DISABLE_AUTH": "0",
+        # "LOG_LEVEL": "10",
+    },
     requires_auth=False,
+    scaling=Scaling(replicas=(1, 3)),
 )
 
 

@@ -11,12 +11,8 @@ from union_mcp.common.auth import require_auth
 
 
 instructions = """
-This MCP server is used to interact with Union v2 resources and services.
+This MCP server is used to interact with Union v2 resources and services."""
 
-For tools that take project and domain arguments, the MCP client needs to provide
-them to the MCP tool calls, and if not provided, the client needs to ask the
-user for the project and domain that they are trying to access.
-"""
 
 # Create an MCP server
 mcp = FastMCP(
@@ -28,12 +24,12 @@ mcp = FastMCP(
 )
 
 
-def _init(project: str, domain: str):
+def _init():
     flyte.init(
-        api_key=os.environ["FLYTE_API_KEY"],
-        org=os.environ["FLYTE_ORG"],
-        project=project,
-        domain=domain,
+        api_key=os.getenv("FLYTE_API_KEY"),
+        org=os.getenv("FLYTE_ORG"),
+        project=os.getenv("FLYTE_PROJECT"),
+        domain=os.getenv("FLYTE_DOMAIN"),
     )
 
 
@@ -42,11 +38,9 @@ def _init(project: str, domain: str):
 async def run_task(
     name: str,
     inputs: dict,
-    project: str,
-    domain: str,
     ctx: Context,
 ) -> dict:
-    ctx.info(f"Running task {name} in project {project} and domain {domain}")
+    ctx.info(f"Running task {name}")
     """Run a task with natural language.
 
     - Based on the prompt and inputs dictionary, determine the task to run
@@ -54,8 +48,6 @@ async def run_task(
     - Invoke the task
     
     Args:
-        project: Project to run the task in.
-        domain: Domain to run the task in.
         name: Name of the task to run.
         inputs: A dictionary of inputs to the task.
 
@@ -63,35 +55,44 @@ async def run_task(
         A dictionary of outputs from the task.
     """
     # Based on the prompt and inputs dictionary, determine the task
-    _init(project, domain)
-    return (await resources.run_task(name, inputs, project, domain)).to_dict()
+    _init()
+    return (await resources.run_task(name, inputs)).to_dict()
 
 
 @mcp.tool()
 @require_auth
-async def get_task(name: str, project: str, domain: str, ctx: Context) -> dict:
+async def get_task(
+    name: str,
+    ctx: Context,
+) -> dict:
     """Get a union task."""
-    print(f"Getting task {name} in project {project} and domain {domain}")
-    _init(project, domain)
-    task = await resources.get_task(name, project, domain)
+    print(f"Getting task {name}")
+    _init()
+    task = await resources.get_task(name)
     return task.to_dict()
 
 
 @mcp.tool()
 @require_auth
-async def get_run(name: str, project: str, domain: str, ctx: Context) -> dict:
+async def get_run(
+    name: str,
+    ctx: Context,
+) -> dict:
     """Get personalized union execution."""
-    print(f"Getting execution {name} in project {project} and domain {domain}")
-    _init(project, domain)
+    print(f"Getting execution {name}")
+    _init()
     return (await resources.get_run_details(name)).to_dict()
 
 
 @mcp.tool()
 @require_auth
-async def get_run_io(name: str, project: str, domain: str, ctx: Context) -> dict:
+async def get_run_io(
+    name: str,
+    ctx: Context,
+) -> dict:
     """Get personalized union execution."""
-    print(f"Getting execution {name} in project {project} and domain {domain}")
-    _init(project, domain)
+    print(f"Getting execution {name}")
+    _init()
     inputs, outputs = await resources.get_run_io(name)
     return {
         "inputs": inputs.to_dict(),
@@ -102,71 +103,141 @@ async def get_run_io(name: str, project: str, domain: str, ctx: Context) -> dict
 @mcp.tool()
 @require_auth
 async def list_tasks(
-    project: str,
-    domain: str,
     ctx: Context,
 ) -> list[dict]:
-    """List all tasks in a project and domain."""
-    _init(project, domain)
-    print(f"Listing tasks in project {project} and domain {domain}")
-    return [task.to_dict() for task in await resources.list_tasks(project, domain)]
+    """List all tasks."""
+    _init()
+    print(f"Listing tasks")
+    return [task.to_dict() for task in await resources.list_tasks()]
 
 
 @mcp.tool()
 @require_auth
-async def list_runs(task_name: str, project: str, domain: str, ctx: Context) -> dict:
+async def list_runs(
+    task_name: str,
+    ctx: Context,
+) -> dict:
     """Get a union task inputs and outputs."""
-    print(f"Getting runs of {task_name} in project {project} and domain {domain}")
-    _init(project, domain)
-    runs = await resources.list_runs(task_name, project, domain)
+    print(f"Getting runs of {task_name}")
+    _init()
+    runs = await resources.list_runs(task_name)
     return [(await run.action.details()).to_dict() for run in runs]
 
 
 @mcp.tool()
 @require_auth
-async def run_script(script: str, project: str, domain: str, ctx: Context) -> dict:
-    """Run a task script provided by the user.
+async def build_script_image(
+    script: str,
+    ctx: Context,
+):
+    """Build the image for a script.
+    
+    Args:
+        script: Script to build the image for.
 
-    - Based on the script, determine the task to register
-    - Format the script so that it matches the task function signature
-    - Register the task
+    This tool should be used before invoking run_script_remote. This will asynchonously build the image and return the
+    result, which contains the build task url. You can use the build task url to monitor the build progress.
+
+    Once this build task is completed, the agent can invoke run_script_remote to run the script on the remote Flyte cluster.
+    """
+    _init()
+    return await resources.build_script_image(script)
+
+
+@mcp.tool()
+@require_auth
+async def run_script_remote(
+    script: str,
+    ctx: Context,
+) -> dict:
+    """Run a task script provided by the user on remote Flyte cluster.
+
+    IMPORTANT: Make sure the script is built first using build_script_image tool, which should be called before this tool.
+    This will asynchronously build the image and return the result, which contains the build task url. You can use the
+    build task url to monitor the build progress.
+
+    Make sure the the script is correctly formatted according to flyte_script_format.
+    For a complete example, see flyte_script_example.
+    
+    Use search_flyte_sdk_examples and search_flyte_docs_examples to find examples
+    that match your needs.
 
     Args:
-        script: Script to register the task from.
-        project: Project to register the task in.
-        domain: Domain to register the task in.
+        script: Script to register the task from. The script should contain a main condtional block as
+        follows:
+
+        ```
+        if __name__ == "__main__":
+            flyte.init(
+                api_key=os.environ["FLYTE_API_KEY"],
+                org=os.environ["FLYTE_ORG"],
+                project=os.environ["FLYTE_PROJECT"],
+                domain=os.environ["FLYTE_DOMAIN"],
+                image_builder="remote",
+                log_level=os.getenv("LOG_LEVEL", "INFO"),
+            )
+            run = flyte.with_runcontext(mode="remote").run(<main-function>, <main-arguments>)
+            print(run.url)
+        ```
     """
-    _init(project, domain)
-    run_script_result = await resources.run_script(script, project, domain)
-    return run_script_result
+    _init()
+    return await resources.run_script_remote(script)
 
 
 @mcp.tool()
 @require_auth
 async def flyte_script_format(ctx: Context) -> str:
-    """Get the template format of a Flyte script."""
+    """Get the template format of a Flyte script.
+    
+    Use search_flyte_sdk_examples and search_flyte_docs_examples to find examples
+    that match your needs.
+    """
     return resources.script_format()
 
 
 @mcp.tool()
 @require_auth
 async def flyte_script_example(ctx: Context) -> str:
-    """Get a full example of a Flyte script."""
+    """Get a full example of a Flyte script.
+    
+    Use search_flyte_sdk_examples and search_flyte_docs_examples to find examples
+    that match your needs.
+    """
     ctx.info("Getting example Flyte script")
     return resources.script_example()
 
 
 @mcp.tool()
 @require_auth
-async def search_flyte_sdk_examples(pattern: str, ctx: Context) -> str:
-    """Search the Flyte SDK examples repository for files that match a pattern."""
+async def search_flyte_sdk_examples(
+    pattern: str,
+    ctx: Context,
+) -> str:
+    """Search the Flyte SDK examples repository for files that match a pattern.
+    
+    Args:
+        pattern: The pattern to search for.
+
+    Returns:
+        A markdown-formatted string containing the contents of the top 3 files with the most matches.
+    """
     ctx.info("Getting example Flyte SDK example scripts")
-    return resources.search_flyte_examples(pattern, "/root/flyte-sdk/examples")
+    return resources.search_flyte_examples(pattern, "/root/flyte-sdk/examples", top_n=3)
 
 
 @mcp.tool()
 @require_auth
-async def search_flyte_docs_examples(pattern: str, ctx: Context) -> str:
-    """Search the official Flyte Docs examples repository for files that match a pattern."""
+async def search_flyte_docs_examples(
+    pattern: str,
+    ctx: Context,
+) -> str:
+    """Search the official Flyte Docs examples repository for files that match a pattern.
+    
+    Args:
+        pattern: The pattern to search for.
+
+    Returns:
+        A markdown-formatted string containing the contents of the top 3 files with the most matches.
+    """
     ctx.info("Getting example Flyte docs")
-    return resources.search_flyte_examples(pattern, "/root/unionai-examples/v2")
+    return resources.search_flyte_examples(pattern, "/root/unionai-examples/v2", top_n=3)

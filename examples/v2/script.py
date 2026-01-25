@@ -1,11 +1,11 @@
 # /// script
 # dependencies = [
 #    "scikit-learn==1.6.1",
-#    "numpy",
 #    "pandas",
 #    "pyarrow",
 #    "joblib",
 #    "mashumaro",
+#    "plotly",
 #    "flyte>=2.0.0b49",
 # ]
 # ///
@@ -126,9 +126,7 @@ async def load_decision_tree(file: File) -> DecisionTreeClassifier:
     return joblib.load(local_path)
 
 
-def random_forest_from_decision_trees(
-    decision_trees: list[DecisionTreeClassifier],
-) -> RandomForestClassifier:
+def random_forest_from_decision_trees(decision_trees: list[DecisionTreeClassifier]) -> RandomForestClassifier:
     """Helper function that reconstitutes a random forest model from a list of decision trees."""
 
     rf = RandomForestClassifier(n_estimators=len(decision_trees))
@@ -162,9 +160,7 @@ async def train_distributed_random_forest(dataset_dir: Dir, n_estimators: int) -
 
         decision_tree_files = await asyncio.gather(*decision_tree_files)
 
-    decision_trees = await asyncio.gather(
-        *[load_decision_tree(file) for file in decision_tree_files]
-    )
+    decision_trees = await asyncio.gather(*[load_decision_tree(file) for file in decision_tree_files])
 
     random_forest = random_forest_from_decision_trees(decision_trees)
     temp_dir = tempfile.mkdtemp()
@@ -200,9 +196,7 @@ async def main(n_estimators: int = 16) -> tuple[File, float]:
     try:
         await load_all_data(dataset)
     except flyte.errors.OOMError as e:
-        print(
-            f"Failed with oom trying with more resources: {e}, of type {type(e)}, {e.code}"
-        )
+        print(f"Failed with oom trying with more resources: {e}, of type {type(e)}, {e.code}")
 
     random_forest = await train_distributed_random_forest(dataset, n_estimators)
     accuracy = await evaluate_random_forest(random_forest, dataset, 0)
@@ -210,7 +204,12 @@ async def main(n_estimators: int = 16) -> tuple[File, float]:
 
 
 if __name__ == "__main__":
+    import argparse
     import os
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--build", action="store_true")
+    args = parser.parse_args()
 
     flyte.init(
         api_key=os.environ["FLYTE_API_KEY"],
@@ -219,8 +218,11 @@ if __name__ == "__main__":
         domain=os.environ["FLYTE_DOMAIN"],
         image_builder="remote",
     )
-    run = flyte.with_runcontext(mode="remote").run(main)
-    print(run.url)
+    if args.build:
+        flyte.build(env.image)
+    else:
+        run = flyte.with_runcontext(mode="remote").run(main)
+        print(run.url)
 
     # Run with:
     # uv run --prerelease=allow examples/v2/script.py

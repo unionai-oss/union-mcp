@@ -1,19 +1,17 @@
 import os
 import subprocess
+import uuid
+import flyte.io  # noqa: F401 - imported to register FileTransformer and DirTransformer with TypeEngine
 import flyte.remote
 
 
 async def run_task(
     name: str,
     inputs: dict,
-    project: str | None = None,
-    domain: str | None = None,
     version: str | None = None,
 ) -> flyte.remote.ActionDetails:
     task = flyte.remote.Task.get(
         name=name,
-        project=project,
-        domain=domain,
         version=version,
         auto_version="latest" if version is None else None,
     )
@@ -23,14 +21,10 @@ async def run_task(
 
 async def get_task(
     name: str,
-    project: str | None = None,
-    domain: str | None = None,
     version: str | None = None,
 ) -> flyte.remote.Task:
     return flyte.remote.Task.get(
         name=name,
-        project=project,
-        domain=domain,
         version=version,
         auto_version="latest" if version is None else None,
     ).fetch()
@@ -48,26 +42,17 @@ async def get_run_io(
     return run.inputs(), run.outputs()
 
 
-async def list_tasks(
-    project: str | None = None,
-    domain: str | None = None,
-) -> list[flyte.remote.Task]:
+async def list_tasks() -> list[flyte.remote.Task]:
     tasks = []
-    for task in flyte.remote.Task.listall(project=project, domain=domain):
-        tasks.append(await get_task(task.name, project=project, domain=domain))
+    for task in flyte.remote.Task.listall():
+        tasks.append(await get_task(task.name))
     return tasks
 
 
-async def list_runs(
-    task_name: str | None = None,
-    project: str | None = None,
-    domain: str | None = None,
-) -> list[flyte.remote.Run]:
+async def list_runs(task_name: str | None = None) -> list[flyte.remote.Run]:
     runs = []
     for run in flyte.remote.Run.listall(
         task_name=task_name,
-        project=project,
-        domain=domain,
         limit=10,
         sort_by=("created_at", "desc"),
     ):
@@ -75,31 +60,55 @@ async def list_runs(
     return runs
 
 
-async def run_script(script: str, project: str, domain: str) -> dict:
-    with open("__run_script__.py", "w") as f:
+async def build_script_image(script: str) -> dict:
+
+    filename = f"__build_script_{str(uuid.uuid4())[:16]}__.py"
+
+    with open(filename, "w") as f:
         f.write(script)
 
-    proc = subprocess.run(
-        ["uv", "run", "--prerelease=allow", "__run_script__.py"],
-        capture_output=True,
-        env=os.environ
-        | {
-            "FLYTE_PROJECT": project,
-            "FLYTE_DOMAIN": domain,
-        },
-        text=True,
-    )
-    return {
-        "stdout": proc.stdout,
-        "stderr": proc.stderr,
-        "returncode": proc.returncode,
-    }
+    try:
+        proc = subprocess.run(
+            ["uv", "run", "--prerelease=allow", filename, "--build"],
+            capture_output=True,
+            env=os.environ,
+            text=True,
+        )
+        return {
+            "stdout": proc.stdout,
+            "stderr": proc.stderr,
+            "returncode": proc.returncode,
+        }
+    finally:
+        os.remove(filename)
+
+
+async def run_script_remote(script: str) -> dict:
+    filename = f"__run_script_{str(uuid.uuid4())[:16]}__.py"
+
+    with open(filename, "w") as f:
+        f.write(script)
+
+    try:
+        proc = subprocess.run(
+            ["uv", "run", "--prerelease=allow", filename],
+            capture_output=True,
+            env=os.environ,
+            text=True,
+        )
+        return {
+            "stdout": proc.stdout,
+            "stderr": proc.stderr,
+            "returncode": proc.returncode,
+        }
+    finally:
+        os.remove(filename)
 
 
 def search_flyte_examples(
-    pattern: str, examples_dir: str,
+    pattern: str, examples_dir: str, top_n: int = 3,
 ) -> str:
-    """Grep for a pattern in flyte-sdk/examples, return top 3 files with most matches as markdown.
+    """Grep for a pattern in flyte-sdk/examples, return top n files with most matches as markdown.
 
     Args:
         pattern: The pattern to search for.
@@ -139,9 +148,9 @@ def search_flyte_examples(
     if not file_counts:
         return f"No matches found for pattern: {pattern}"
 
-    # Sort by count descending and take top 3
+    # Sort by count descending and take top_n
     file_counts.sort(key=lambda x: x[1], reverse=True)
-    top_files = file_counts[:3]
+    top_files = file_counts[:top_n]
 
     # Build markdown output
     markdown_parts = [f"# Top {len(top_files)} files matching pattern: `{pattern}`\n"]
@@ -165,11 +174,12 @@ def search_flyte_examples(
     return "\n".join(markdown_parts)
 
 
-def script_format():
-    return f"""
+def script_format() -> str:
+    return """
 ```python
 # /// script
 # dependencies = [
+#    "flyte>=2.0.0b49",  # THIS IS IMPORTANT: it makes sure the script can be run on the MCP server
 #    <package-name>
 #    ...
 # ]
@@ -205,7 +215,13 @@ async def main(<main-arguments>) -> <main-return-type>:  # the main task is the 
 
 
 if __name__ == "__main__":
+    import argparse
     import os
+
+    # THIS IS IMPORTANT: it makes sure the script can be both built and run on the MCP server
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--build", action="store_true")
+    args = parser.parse_args()
 
     # THIS IS IMPORTANT: it makes sure the script can be run on the MCP server
     flyte.init(
@@ -216,23 +232,27 @@ if __name__ == "__main__":
         # THIS IS IMPORTANT: image builder needs to be set to remote for the script to run on the MCP server
         image_builder="remote",
     )
-
-    # run the task in remote mode
-    run = flyte.with_runcontext(mode="remote").run(main, <main-arguments>)
-    print(run.url)
+    # THIS IS IMPORTANT: the script should be built first, then run
+    if args.build:
+        flyte.build(env.image)
+    else:
+        # run the task in remote mode
+        run = flyte.with_runcontext(mode="remote").run(main, <main-arguments>)
+        print(run.url)
 ```
 """.strip()
 
 
-def script_example():
-    """
+def script_example() -> str:
+    """Get a full example of a Flyte script."""
+    return """
 ```python
 # /// script
 # dependencies = [
+#    "flyte>=2.0.0b49",  # THIS IS IMPORTANT: it makes sure the script can be run on the MCP server
 #    "scikit-learn==1.6.1",
 #    "pandas",
 #    "pyarrow",
-#    "flyte>=2.0.0b49",
 # ]
 # ///
 
@@ -271,7 +291,13 @@ async def main() -> RandomForestClassifier:
 
 
 if __name__ == "__main__":
+    import argparse
     import os
+
+    # THIS IS IMPORTANT: it makes sure the script can be both built and run on the MCP server
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--build", action="store_true")
+    args = parser.parse_args()
 
     # THIS IS IMPORTANT: it makes sure the script can be run on the MCP server
     flyte.init(
@@ -282,7 +308,12 @@ if __name__ == "__main__":
         # THIS IS IMPORTANT: image builder needs to be set to remote for the script to run on the MCP server
         image_builder="remote",
     )
-    run = flyte.with_runcontext(mode="remote").run(main)
-    print(run.url)
+    # THIS IS IMPORTANT: the script should be built first, then run
+    if args.build:
+        flyte.build(env.image)
+    else:
+        # run the task in remote mode
+        run = flyte.with_runcontext(mode="remote").run(main)
+        print(run.url)
 ```
 """.strip()
