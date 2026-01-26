@@ -51,9 +51,8 @@ app = AppEnvironment(
         "FLYTE_PROJECT": FLYTE_PROJECT,
         "FLYTE_DOMAIN": FLYTE_DOMAIN,
         "DISABLE_AUTH": "0",
-        "LOG_LEVEL": "10",
     },
-    requires_auth=False,
+    requires_auth=True,
     scaling=Scaling(replicas=(1, 3)),
     links=[
         Link(
@@ -64,11 +63,14 @@ app = AppEnvironment(
     ]
 )
 
-@app.server
-def server():
-    from union_mcp.v2.server import mcp
 
-    mcp.run(transport="streamable-http")
+@app.server
+async def server():
+    import uvicorn
+    from union_mcp.v2.server import app
+
+    server = uvicorn.Server(uvicorn.Config(app, port=8000))
+    await server.serve()
 
 
 if __name__ == "__main__":

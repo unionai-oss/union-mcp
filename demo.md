@@ -12,8 +12,11 @@ Add the following to your `~/.cursor/mcp.json` file:
 ```json
 {
   "mcpServers": {
-    "Union MCP": {
-      "url": "https://mcp.apps.union-internal.hosted.unionai.cloud/sse"
+    "union-mcp-v2": {
+      "url": "https://mcp-v2.apps.demo.hosted.unionai.cloud/mcp"
+      "headers": {
+        "Authorization": "Bearer <secret-value>"
+      }
     }
   }
 }
@@ -21,14 +24,28 @@ Add the following to your `~/.cursor/mcp.json` file:
 
 ### Claude Code
 
-### Claude Desktop
+Add the following to your `~/.claude.json` file:
+
+```json
+{
+  "mcpServers": {
+    "union-mcp-v2": {
+      "url": "https://mcp-v2.apps.demo.hosted.unionai.cloud/mcp"
+      "headers": {
+        "Authorization": "Bearer <secret-value>"
+      }
+    }
+  }
+}
+```
 
 ## Prompts
 
 ### Toy example
 
 ```
-Create a flyte script that fans out tasks to compute the square of the numbers from 1 to 1_000_000, then sums the squares.
+Create a flyte script that fans out tasks to compute the square of the numbers from 1 to 100_000, where each task
+handles 1_000 numbers, then sums the squares.
 ```
 
 ### Visualization
