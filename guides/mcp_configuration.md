@@ -71,9 +71,9 @@ Replace the `url` with the URL of the deployed app and `<your-token>` with the a
 {
   "mcpServers": {
     "Union MCP": {
-      "url": "https://mcp-v2.apps.union-internal.hosted.unionai.cloud/mcp",
+      "url": "https://mcp-v2.apps.demo.hosted.unionai.cloud/sdk/mcp",
       "headers": {
-        "Authorization": "Bearer <UNION_MCP_AUTH_TOKEN>"
+        "Authorization": "Bearer <UNION_DEMO_API_KEY>"
       }
     }
   }
@@ -138,7 +138,7 @@ Replace the `url` with the URL of the deployed app and `<your-token>` with the a
       "command": "npx",
       "args": [
         "mcp-remote",
-        "https://mcp-v2.apps.union-internal.hosted.unionai.cloud/mcp",
+        "https://mcp-v2.apps.demo.hosted.unionai.cloud/sdk/mcp",
         "--header",
         "Authorization: Bearer <secret-value>"
       ],

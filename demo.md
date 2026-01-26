@@ -13,7 +13,7 @@ Add the following to your `~/.cursor/mcp.json` file:
 {
   "mcpServers": {
     "union-mcp-v2": {
-      "url": "https://mcp-v2.apps.demo.hosted.unionai.cloud/mcp"
+      "url": "https://mcp-v2.apps.demo.hosted.unionai.cloud/sdk/mcp"
       "headers": {
         "Authorization": "Bearer <secret-value>"
       }
@@ -30,7 +30,7 @@ Add the following to your `~/.claude.json` file:
 {
   "mcpServers": {
     "union-mcp-v2": {
-      "url": "https://mcp-v2.apps.demo.hosted.unionai.cloud/mcp"
+      "url": "https://mcp-v2.apps.demo.hosted.unionai.cloud/sdk/mcp"
       "headers": {
         "Authorization": "Bearer <secret-value>"
       }
@@ -51,11 +51,11 @@ Make sure that `npx` is installed and available in your `$PATH`.
 ```json
 {
   "mcpServers": {
-    "Union MCP Remote v2": {
+    "union-mcp-v2": {
       "command": "npx",
       "args": [
         "mcp-remote",
-        "https://mcp-v2.apps.demo.hosted.unionai.cloud/mcp",
+        "https://mcp-v2.apps.demo.hosted.unionai.cloud/sdk/mcp",
         "--header",
         "Authorization: Bearer ${AUTH_TOKEN}"
       ],

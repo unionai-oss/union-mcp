@@ -243,7 +243,7 @@ app = Starlette(
         Middleware(FastAPIPassthroughAuthMiddleware),
     ],
     routes=[
-        Mount("/", app=mcp.streamable_http_app()),
+        Mount("/sdk", app=mcp.streamable_http_app()),
     ],
     lifespan=lifespan,
 )
