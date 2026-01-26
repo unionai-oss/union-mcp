@@ -43,7 +43,7 @@ app = AppEnvironment(
     include=["examples/v2/server.py", "union_mcp"],
     image=image,
     # args="mcp run examples/v2/server.py --transport streamable-http",
-    resources=flyte.Resources(cpu=3, memory="8Gi", disk="100Gi"),
+    resources=flyte.Resources(cpu=7, memory="28Gi", disk="100Gi"),
     secrets=[
         flyte.Secret(key="EAGER_API_KEY", as_env_var="FLYTE_API_KEY"),
     ],
@@ -54,7 +54,7 @@ app = AppEnvironment(
         "DISABLE_AUTH": "0",
     },
     requires_auth=True,
-    scaling=Scaling(replicas=(1, 3)),
+    scaling=Scaling(replicas=(0, 2)),
     links=[
         Link(
             path="/sdk/mcp",
