@@ -1,0 +1,212 @@
+# Union MCP v2
+
+This file contains rules for using the Union MCP v2 server to run compute- or io-intensive workloads on a remote Flyte cluster.
+
+## When to Use Union MCP v2
+
+### Explicit Requests
+If the user **explicitly asks** to run a workload on Flyte or Union, use the Union MCP v2 server.
+
+### Implicit Compute Needs
+If a task requires compute resources **beyond what a consumer laptop can handle**, proactively suggest and use the Union MCP v2 server. This includes:
+
+- **Large-scale parallel processing**: Tasks that benefit from fan-out patterns (e.g., processing millions of items)
+- **GPU workloads**: Deep learning inference, embeddings, model training
+- **Memory-intensive tasks**: Processing large datasets that exceed typical RAM (8-16GB)
+- **Long-running computations**: Tasks that would take more than a few minutes on a laptop
+- **Hyperparameter optimization**: Parallel training runs across parameter combinations
+- **Batch data processing**: ETL jobs, data transformations on large datasets
+
+### Examples of When to Use Flyte
+- "Compute the sum of squares for 1 million numbers" → Fan-out to parallel workers
+- "Embed this 100k document dataset" → GPU batch inference
+- "Train models with different hyperparameters" → Parallel hyperparameter search
+- "Process this 50GB CSV file" → Distributed data processing
+- "Generate embeddings using a transformer model" → GPU acceleration
+
+### Examples of When NOT to Use Flyte
+- Simple calculations that complete in seconds
+- Reading/writing small files
+- Basic API calls
+- Local development tasks
+- Quick data exploration on small datasets
+
+## Workflow for Running Flyte Scripts
+
+Follow these steps when running a workload on Flyte:
+
+### Step 1: Search for Examples
+Before writing a script, search for relevant examples:
+1. Search the local workspace for existing Flyte examples
+2. Use `search_flyte_sdk_examples` for bleeding-edge SDK features
+3. Use `search_flyte_docs_examples` for common use cases and patterns
+4. Use `search_full_docs` for Flyte documentation and API reference
+
+### Step 2: Get the Script Format
+Use `flyte_script_format` to get the required template structure. Key requirements:
+- PEP 723 script dependencies block with `flyte>=2.0.0b49`
+- `flyte.TaskEnvironment` with resources and image configuration
+- Tasks decorated with `@env.task` and marked as `async`
+- A `main` task as the entry point
+- `if __name__ == "__main__"` block with build/run logic
+
+### Step 3: Build the Image
+Use `build_script_image` to build the container image. **Important**:
+- Image builds can take **5-10 minutes or more**
+- If the build doesn't complete in 10-15 seconds, show the build URL to the user
+- Wait for the build to complete before running the script
+- Use `get_run` or `wait_for_run_completion` to monitor build progress
+
+### Step 4: Run the Script
+Use `run_script_remote` to execute the script. **Important**:
+- Ensure the image build completed successfully first
+- Task runs can also take **5-10 minutes or more**
+- Show the task run URL to the user for monitoring
+- Use `get_run` or `wait_for_run_completion` to check status
+
+### Step 5: Get Results
+Once the run completes:
+- Use `get_run` to get execution details and status
+- Use `get_run_io` to retrieve inputs and outputs
+
+## Available Tools
+
+| Tool | Purpose |
+|------|---------|
+| `flyte_script_format` | Get the template format for Flyte scripts |
+| `flyte_script_example` | Get a complete working example |
+| `search_flyte_sdk_examples` | Search SDK repo for feature examples |
+| `search_flyte_docs_examples` | Search docs repo for use case examples |
+| `search_full_docs` | Search full Flyte documentation |
+| `build_script_image` | Build container image for a script |
+| `run_script_remote` | Execute script on Flyte cluster |
+| `get_run` | Get execution status and details |
+| `wait_for_run_completion` | Wait for a run to finish |
+| `get_run_io` | Get inputs/outputs of a completed run |
+| `list_tasks` | List all available tasks |
+| `list_runs` | List runs for a specific task |
+| `run_task` | Run an existing registered task |
+| `get_task` | Get details of a registered task |
+
+## Script Structure Best Practices
+
+### Resource Configuration
+```python
+env = flyte.TaskEnvironment(
+    name="my_task_env",
+    resources=flyte.Resources(
+        cpu=2,              # Number of CPUs
+        memory="512Mi",     # Memory (Mi, Gi)
+        gpu="T4:1",         # GPU type and count (optional)
+        disk="10Gi",        # Disk space (optional)
+    ),
+    image=flyte.Image.from_uv_script(
+        __file__,
+        name="my-image",
+        registry="ghcr.io/flyteorg",
+        python_version=(3, 13),
+        pre=True,  # Allow pre-release packages
+    ).with_apt_packages("ca-certificates"),
+)
+```
+
+### Parallel Processing Pattern
+Use `flyte.group` and `asyncio.gather` for fan-out:
+```python
+@env.task
+async def process_item(item: int) -> int:
+    return item * item
+
+@env.task
+async def main(items: list[int]) -> list[int]:
+    tasks = []
+    with flyte.group("parallel-processing"):
+        for item in items:
+            tasks.append(process_item(item))
+        results = await asyncio.gather(*tasks)
+    return list(results)
+```
+
+### Reports and Visualizations
+Use `flyte.report` for rendering HTML visualizations:
+```python
+@env.task(report=True)
+async def create_visualization(data: pd.DataFrame) -> str:
+    import plotly.express as px
+    
+    fig = px.scatter(data, x="x", y="y")
+    chart_html = fig.to_html(include_plotlyjs=True, full_html=False)
+    
+    tab = flyte.report.get_tab("Results")
+    tab.log("<h1>My Visualization</h1>")
+    tab.log(chart_html)
+    await flyte.report.flush.aio()
+    
+    return "done"
+```
+
+### GPU Workloads
+For GPU tasks, specify the GPU in resources:
+```python
+gpu_env = flyte.TaskEnvironment(
+    name="gpu_task",
+    resources=flyte.Resources(cpu=4, memory="16Gi", gpu="T4:1"),
+    image=flyte.Image.from_uv_script(...),
+)
+```
+
+### File I/O
+Use `flyte.io.File` for file outputs:
+```python
+import flyte.io
+
+@env.task
+async def save_results(data: dict) -> flyte.io.File:
+    import json
+    with open("results.json", "w") as f:
+        json.dump(data, f)
+    return flyte.io.File("results.json")
+```
+
+## Error Handling
+
+### Build Failures
+If `build_script_image` fails:
+1. Check the error message in stderr
+2. Verify dependencies are correctly specified
+3. Ensure the script follows the required format
+4. Check for syntax errors in the script
+
+### Run Failures
+If `run_script_remote` fails:
+1. Use `get_run` to get detailed error information
+2. Check if the image was built successfully
+3. Verify resource requirements are reasonable
+4. Check task logic for runtime errors
+
+## Authentication
+
+If you receive an `Authentication required: Invalid or missing token` error, ask the user to configure the MCP server with proper authentication headers in their `~/.claude.json`:
+
+```json
+{
+  "mcpServers": {
+    "union-mcp-v2": {
+      "url": "https://mcp-v2.apps.demo.hosted.unionai.cloud/sdk/mcp",
+      "headers": {
+        "Authorization": "Bearer <your-token>"
+      }
+    }
+  }
+}
+```
+
+## Example Prompts
+
+These are examples of requests that should use Union MCP v2:
+
+1. **Fan-out computation**: "Compute the square of numbers from 1 to 100,000 in parallel"
+2. **Visualization**: "Download a dataset and create a Plotly visualization, running it on Flyte"
+3. **Hyperparameter optimization**: "Run parallel hyperparameter search for a random forest model"
+4. **GPU inference**: "Embed documents using a transformer model on a GPU"
+5. **Data processing**: "Process a large CSV file and aggregate results"

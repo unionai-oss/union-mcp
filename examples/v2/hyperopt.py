@@ -6,12 +6,14 @@
 #    "plotly",
 #    "numpy",
 #    "pyarrow",
+#    "pydantic",
 # ]
 # ///
 
 import asyncio
 import random
-from dataclasses import dataclass
+
+from pydantic import BaseModel
 
 import pandas as pd
 
@@ -31,8 +33,7 @@ env = flyte.TaskEnvironment(
 )
 
 
-@dataclass
-class HyperParams:
+class HyperParams(BaseModel):
     n_estimators: int
     max_depth: int  # use 0 to represent None
     min_samples_split: int
@@ -40,8 +41,7 @@ class HyperParams:
     max_features: str
 
 
-@dataclass
-class TrialResult:
+class TrialResult(BaseModel):
     params: HyperParams
     f1_score: float
     accuracy: float
