@@ -85,4 +85,4 @@ Make sure that `npx` is installed and available in your `$PATH`.
 
 ### GPU Batch inference
 
-> Run a flyte script that embeds the "review" column of the "scikit-learn/imdb" huggingface dataset using the "answerdotai/ModernBERT-base" model on a T4 GPU. Use a driver-worker pattern where the driver is a CPU environment and the worker is a GPU environment. Save the embeddings to a json file using flyte.io.File, and use flyte.report to visualize a preview of text the contents of the first five documents and the distribution of their embeddings.
+> Run a flyte script that embeds the "review" column of the "scikit-learn/imdb" huggingface dataset using the "answerdotai/ModernBERT-base" model on a T4 GPU. Use a driver-worker pattern where the driver is a CPU environment and the worker is a GPU environment. Save the embeddings to a json file using flyte.io.File, and use flyte.report make a pretty visualization of the embeddings, including a preview of text the contents of the first five documents and the distribution of their embeddings.

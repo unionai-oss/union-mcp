@@ -24,12 +24,13 @@ image = (
     flyte.Image.from_debian_base(name="union-mcp-server")
     .with_pip_packages("uv", "mcp[cli]==1.26.0", "starlette")
     # .with_pip_packages("flyte==2.0.0b49")
-    .with_apt_packages("git")
+    .with_apt_packages("git", "wget")
     .with_pip_packages("git+https://github.com/flyteorg/flyte-sdk.git@c985e5fe")
     .with_commands(
         [
             "git clone https://github.com/flyteorg/flyte-sdk.git /root/flyte-sdk --branch main",
             "git clone https://github.com/unionai/unionai-examples.git /root/unionai-examples --branch main",
+            "wget https://www.union.ai/docs/v2/flyte/_static/public/llms-full.txt -O ./full-docs.txt",
         ]
     )
 )
@@ -56,8 +57,13 @@ app = AppEnvironment(
     scaling=Scaling(replicas=(1, 3)),
     links=[
         Link(
-            path="/mcp",
+            path="/sdk/mcp",
             title="Streamable HTTP transport endpoint",
+            is_relative=True,
+        ),
+        Link(
+            path="/health",
+            title="Health check endpoint",
             is_relative=True,
         )
     ]

@@ -35,6 +35,12 @@ async def get_run_details(name: str) -> flyte.remote.ActionDetails:
     return await run.action.details()
 
 
+async def wait_for_run_completion(name: str) -> flyte.remote.ActionDetails:
+    run = flyte.remote.Run.get(name=name)
+    await run.wait.aio()
+    return await run.action.details()
+
+
 async def get_run_io(
     name: str,
 ) -> tuple[flyte.remote.ActionInputs, flyte.remote.ActionOutputs]:
@@ -113,13 +119,13 @@ async def run_script_remote(script: str) -> dict:
 
 
 def search_flyte_examples(
-    pattern: str, examples_dir: str, top_n: int = 3, context_lines: int = 5,
+    pattern: str, file_or_dir: str, top_n: int = 3, before_context_lines: int = 5, after_context_lines: int = 5,
 ) -> str:
     """Grep for a pattern in flyte-sdk/examples, return top n files with most matches as markdown.
 
     Args:
         pattern: The pattern to search for.
-        examples_dir: The directory to search in. Defaults to "flyte-sdk/examples".
+        file_or_dir: The directory or file to search in. Defaults to "flyte-sdk/examples".
         top_n: The number of top files to return. Defaults to 3.
         context_lines: The number of lines to show before and after each match. Defaults to 5.
 
@@ -128,7 +134,7 @@ def search_flyte_examples(
     """
     # Use grep -c to count matches per file
     proc = subprocess.run(
-        ["grep", "-r", "-c", pattern, examples_dir],
+        ["grep", "-r", "-c", pattern, file_or_dir],
         capture_output=True,
         text=True,
     )
@@ -170,7 +176,7 @@ def search_flyte_examples(
         # Get matching lines with context using grep -B and -A
         try:
             context_proc = subprocess.run(
-                ["grep", "-n", f"-B{context_lines}", f"-A{context_lines}", pattern, filepath],
+                ["grep", "-n", f"-B{before_context_lines}", f"-A{after_context_lines}", pattern, filepath],
                 capture_output=True,
                 text=True,
             )

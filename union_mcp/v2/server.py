@@ -83,9 +83,36 @@ async def get_run(
     name: str,
     ctx: Context,
 ) -> dict:
-    """Get personalized union execution."""
+    """Get run information.
+    
+    Use wait_for_run_completion to wait for a long-running task run to complete.
+    """
     print(f"Getting execution {name}")
     return (await resources.get_run_details(name)).to_dict()
+
+
+@mcp.tool()
+async def wait_for_run_completion(
+    name: str,
+    ctx: Context,
+) -> dict:
+    """Wait for a run to complete.
+
+    Use this tool to wait for a long-running task run to complete. Useful when
+    the run completion is needed to continue the conversation so that the agent
+    doesn't have to keep polling for the run status.
+
+    Use this for when waiting for build_script_image or run_script_remote runs
+    to complete.
+    
+    Args:
+        name: Name of the run to wait for.
+
+    Returns:
+        A dictionary of run information.
+    """
+    await ctx.info(f"Waiting for run {name} to complete")
+    return (await resources.wait_for_run_completion(name)).to_dict()
 
 
 @mcp.tool()
@@ -135,6 +162,9 @@ async def build_script_image(
     This tool should be used before invoking run_script_remote. This will asynchonously build the image and return the
     result, which contains the build task url. You can use the build task url to monitor the build progress.
 
+    Image builds can take 5-10 minutes and up, so if the image doesn't build within 10-15 seconds, you should pause the thinking
+    loop, show the build task url to the user and ask the user to explicitly check the build task status again.
+
     Once this build task is completed, the agent can invoke run_script_remote to run the script on the remote Flyte cluster.
     """
     return await resources.build_script_image(script)
@@ -156,6 +186,9 @@ async def run_script_remote(
     
     Use search_flyte_sdk_examples and search_flyte_docs_examples to find examples
     that match your needs.
+
+    Task runs can take 5-10 minutes and more, so if the task run doesn't complete within 10-15 seconds, you should pause
+    the thinking loop, show the task run url to the user and ask the user to explicitly check the task run status again.
 
     Args:
         script: Script to register the task from. Use the flyte_script_format to make sure
@@ -189,34 +222,88 @@ async def flyte_script_example(ctx: Context) -> str:
 async def search_flyte_sdk_examples(
     pattern: str,
     ctx: Context,
+    before_context_lines: int = 5,
+    after_context_lines: int = 5,
 ) -> str:
     """Search the Flyte SDK examples repository for files that match a pattern.
+
+    This tool is useful for finding specific examples that are hosted on the Flyte SDK repository, which contains
+    examples that include bleeding edge features and new functionality.
     
     Args:
         pattern: The pattern to search for.
+        before_context_lines: The number of lines to show before each match.
+        after_context_lines: The number of lines to show after each match.
 
     Returns:
         A markdown-formatted string containing the contents of the top 3 files with the most matches.
     """
     await ctx.info("Getting example Flyte SDK example scripts")
-    return resources.search_flyte_examples(pattern, "/root/flyte-sdk/examples", top_n=3)
+    return resources.search_flyte_examples(
+        pattern,
+        "/root/flyte-sdk/examples",
+        top_n=3,
+        before_context_lines=before_context_lines,
+        after_context_lines=after_context_lines,
+    )
 
 
 @mcp.tool()
 async def search_flyte_docs_examples(
     pattern: str,
     ctx: Context,
+    before_context_lines: int = 5,
+    after_context_lines: int = 5,
 ) -> str:
     """Search the official Flyte Docs examples repository for files that match a pattern.
+
+    This tool is useful to find specific use cases and examples of how to use the Flyte SDK in a python script.
     
     Args:
         pattern: The pattern to search for.
+        before_context_lines: The number of lines to show before each match.
+        after_context_lines: The number of lines to show after each match.
 
     Returns:
         A markdown-formatted string containing the contents of the top 3 files with the most matches.
     """
     await ctx.info("Getting example Flyte docs")
-    return resources.search_flyte_examples(pattern, "/root/unionai-examples/v2", top_n=3)
+    return resources.search_flyte_examples(
+        pattern,
+        "/root/unionai-examples/v2",
+        top_n=3,
+        before_context_lines=before_context_lines,
+        after_context_lines=after_context_lines,
+    )
+
+
+@mcp.tool()
+async def search_full_docs(
+    pattern: str,
+    ctx: Context,
+    before_context_lines: int = 20,
+    after_context_lines: int = 20,
+) -> str:
+    """Search the official Flyte Documentation for "User Guide", "Tutorials", "API reference", "Integrations"
+
+    This tool is useful to find out how to use the Flyte SDK, the semantics and functionality of the different flyte
+    constructs, CLI commands, and more.
+    
+    Args:
+        pattern: The pattern to search for.
+        before_context_lines: The number of lines to show before each match.
+        after_context_lines: The number of lines to show after each match.
+
+    Returns:
+        A markdown-formatted string containing the contents of the top 3 files with the most matches.
+    """
+    await ctx.info("Getting example Flyte docs")
+    return resources.search_flyte_examples(
+        pattern,
+        "/root/full-docs.txt",
+        before_context_lines=before_context_lines,
+        after_context_lines=after_context_lines,
+    )
 
 
 @asynccontextmanager
