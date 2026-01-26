@@ -153,11 +153,8 @@ async def list_runs(
 async def build_script_image(
     script: str,
     ctx: Context,
-):
+) -> dict:
     """Build the image for a script.
-    
-    Args:
-        script: Script to build the image for.
 
     This tool should be used before invoking run_script_remote. This will asynchonously build the image and return the
     result, which contains the build task url. You can use the build task url to monitor the build progress.
@@ -166,6 +163,13 @@ async def build_script_image(
     loop, show the build task url to the user and ask the user to explicitly check the build task status again.
 
     Once this build task is completed, the agent can invoke run_script_remote to run the script on the remote Flyte cluster.
+
+    Args:
+        script: Script to build the image for.
+
+    Returns:
+        A dictionary containing the image build run url. Use this run url to
+        monitor the build progress.
     """
     return await resources.build_script_image(script)
 
@@ -193,6 +197,10 @@ async def run_script_remote(
     Args:
         script: Script to register the task from. Use the flyte_script_format to make sure
         the script is correctly formatted.
+
+    Returns:
+        A dictionary containing the run script url. Use this run url to
+        monitor the run script progress.
     """
     return await resources.run_script_remote(script)
 

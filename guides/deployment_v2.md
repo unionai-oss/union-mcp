@@ -54,6 +54,12 @@ Register dummy workflows for testing (optional):
 uv run --with '.[v2]' flyte deploy --project $FLYTE_PROJECT --domain $FLYTE_DOMAIN examples/v2/workflows.py env
 ```
 
+Register the build and run tasks:
+
+```bash
+uv run --with '.[v2]' flyte deploy --project $FLYTE_PROJECT --domain $FLYTE_DOMAIN tasks_v2.py
+```
+
 Then deploy the app:
 
 ```bash

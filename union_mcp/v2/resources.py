@@ -1,8 +1,15 @@
 import os
 import subprocess
-import uuid
 import flyte.io  # noqa: F401 - imported to register FileTransformer and DirTransformer with TypeEngine
 import flyte.remote
+from dataclasses import dataclass
+
+
+@dataclass
+class TaskResult:
+    stdout: str
+    stderr: str
+    returncode: int
 
 
 async def run_task(
@@ -67,55 +74,43 @@ async def list_runs(task_name: str | None = None) -> list[flyte.remote.Run]:
 
 
 async def build_script_image(script: str) -> dict:
+    """Build the container image for a Flyte script using a pre-deployed task.
 
-    filename = f"__build_script_{str(uuid.uuid4())[:16]}__.py"
+    This function invokes the `build_script_image_task` on the remote Flyte cluster
+    to build the container image for the provided script.
 
-    with open(filename, "w") as f:
-        f.write(script)
+    Args:
+        script: The Python script content to build.
 
-    try:
-        proc = subprocess.run(
-            [
-                "uv",
-                "run",
-                "--with", "flyte@git+https://github.com/flyteorg/flyte-sdk.git@378af3e0",
-                "--prerelease=allow",
-                filename,
-                "--build",
-            ],
-            capture_output=True,
-            env=os.environ,
-            text=True,
-        )
-        return {
-            "stdout": proc.stdout,
-            "stderr": proc.stderr,
-            "returncode": proc.returncode,
-        }
-    finally:
-        os.remove(filename)
+    Returns:
+        A dict containing the run details including the URL to monitor the build.
+    """
+    task = flyte.remote.Task.get(
+        name="union_mcp_script_runner.build_script_image_task",
+        auto_version="latest",
+    )
+    run: flyte.remote.Run = flyte.run(task, script=script)
+    return {"image_build_run_url":run.url}
 
 
 async def run_script_remote(script: str) -> dict:
-    filename = f"__run_script_{str(uuid.uuid4())[:16]}__.py"
+    """Run a Flyte script remotely using a pre-deployed task.
 
-    with open(filename, "w") as f:
-        f.write(script)
+    This function invokes the `run_script_remote_task` on the remote Flyte cluster
+    to execute the provided script.
 
-    try:
-        proc = subprocess.run(
-            ["uv", "run", "--prerelease=allow", filename],
-            capture_output=True,
-            env=os.environ,
-            text=True,
-        )
-        return {
-            "stdout": proc.stdout,
-            "stderr": proc.stderr,
-            "returncode": proc.returncode,
-        }
-    finally:
-        os.remove(filename)
+    Args:
+        script: The Python script content to run.
+
+    Returns:
+        A dict containing the run details including the URL to monitor the execution.
+    """
+    task = flyte.remote.Task.get(
+        name="union_mcp_script_runner.run_script_remote_task",
+        auto_version="latest",
+    )
+    run: flyte.remote.Run = flyte.run(task, script=script)
+    return {"run_script_url": run.url}
 
 
 def search_flyte_examples(

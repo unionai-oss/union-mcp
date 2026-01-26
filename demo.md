@@ -5,6 +5,9 @@ tools on a Flyte cluster.
 
 ## Setup
 
+Take a look at the [mcp configuration guide](./guides/mcp_configuration.md) for more detailed instructions on how to
+configure your MCP client to use the Union MCP server.
+
 ### Cursor
 
 Add the following to your `~/.cursor/mcp.json` file:
