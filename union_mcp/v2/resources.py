@@ -216,7 +216,7 @@ def script_format() -> str:
 ```python
 # /// script
 # dependencies = [
-#    "flyte>=2.0.0b49",  # THIS IS IMPORTANT: it makes sure the script can be run on the MCP server
+#    "flyte>=2.0.0b49",  # IMPORTANT: it makes sure the script can be run on the MCP server
 #    <package-name>
 #    ...
 # ]
@@ -224,8 +224,9 @@ def script_format() -> str:
 
 import flyte
 
-# Import other packages as needed
-...
+# IMPORTANT: only import flyte packages and python standard library packages
+# Import 3rd party dependencies inside the task functions or helper functions
+# ... other imports ...
 
 # Define the task environment
 env = flyte.TaskEnvironment(
@@ -237,10 +238,14 @@ env = flyte.TaskEnvironment(
 # Define one or more tasks.
 @env.task
 async def <task-name>(<task-arguments>) -> <task-return-type>:
+    import <package-name>
+
     <task-body>
 
 # Define helper functions as needed
 async def <helper-function-name>(<helper-function-arguments>) -> <helper-function-return-type>:
+    import <other-package-name>
+
     <helper-function-body>
 
 # more tasks
@@ -255,21 +260,21 @@ if __name__ == "__main__":
     import argparse
     import os
 
-    # THIS IS IMPORTANT: it makes sure the script can be both built and run on the MCP server
+    # IMPORTANT: it makes sure the script can be both built and run on the MCP server
     parser = argparse.ArgumentParser()
     parser.add_argument("--build", action="store_true")
     args = parser.parse_args()
 
-    # THIS IS IMPORTANT: it makes sure the script can be run on the MCP server
+    # IMPORTANT: it makes sure the script can be run on the MCP server
     flyte.init(
         api_key=os.environ["FLYTE_API_KEY"],
         org=os.environ["FLYTE_ORG"],
         project=os.environ["FLYTE_PROJECT"],
         domain=os.environ["FLYTE_DOMAIN"],
-        # THIS IS IMPORTANT: image builder needs to be set to remote for the script to run on the MCP server
+        # IMPORTANT: image builder needs to be set to remote for the script to run on the MCP server
         image_builder="remote",
     )
-    # THIS IS IMPORTANT: the script should be built first, then run
+    # IMPORTANT: the script should be built first, then run
     if args.build:
         uri = flyte.build(env.image, wait=False)
         print(f"build run url: {{uri}}")
@@ -291,15 +296,12 @@ def script_example() -> str:
 #    "scikit-learn==1.6.1",
 #    "pandas",
 #    "pyarrow",
+#    "joblib",
 # ]
 # ///
 
 import flyte
-
-import pandas as pd
-from sklearn.datasets import make_classification
-from sklearn.ensemble import RandomForestClassifier
-
+import flyte.io
 
 env = flyte.TaskEnvironment(
     name="my_example_script",
@@ -308,21 +310,32 @@ env = flyte.TaskEnvironment(
 )
 
 @env.task
-async def create_dataset(n_samples: int = 100) -> pd.DataFrame:
+async def create_dataset(n_samples: int = 100) -> flyte.io.DataFrame:
+    import pandas as pd
+    from sklearn.datasets import make_classification
+
     X, y = make_classification(n_samples=n_samples, n_features=10, n_classes=2)
     df = pd.DataFrame(X)
     df["target"] = y
-    return df
+    fdf = flyte.io.DataFrame.from_df(df)
+    return fdf
 
 @env.task
-async def train_model(dataset: pd.DataFrame) -> RandomForestClassifier:
+async def train_model(dataset: flyte.io.DataFrame) -> flyte.io.File:
+    from sklearn.ensemble import RandomForestClassifier
+    import joblib
+
     model = RandomForestClassifier()
     model.fit(dataset.drop(columns=["target"]), dataset["target"])
+    file = flyte.io.File.new_remote()
+    with open(file.path, "wb") as f:
+        joblib.dump(model, f)
+    return file
     return model
 
 
 @env.task
-async def main() -> RandomForestClassifier:
+async def main() -> flyte.io.File:
     dataset = await create_dataset()
     model = await train_model(dataset)
     return model

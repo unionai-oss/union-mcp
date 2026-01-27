@@ -12,12 +12,10 @@
 
 import asyncio
 import random
-
-from pydantic import BaseModel
-
-import pandas as pd
+from dataclasses import dataclass
 
 import flyte
+import flyte.io
 import flyte.report
 
 env = flyte.TaskEnvironment(
@@ -33,7 +31,8 @@ env = flyte.TaskEnvironment(
 )
 
 
-class HyperParams(BaseModel):
+@dataclass
+class HyperParams:
     n_estimators: int
     max_depth: int  # use 0 to represent None
     min_samples_split: int
@@ -41,7 +40,8 @@ class HyperParams(BaseModel):
     max_features: str
 
 
-class TrialResult(BaseModel):
+@dataclass
+class TrialResult:
     params: HyperParams
     f1_score: float
     accuracy: float
@@ -49,8 +49,9 @@ class TrialResult(BaseModel):
 
 
 @env.task
-async def load_penguins_data() -> pd.DataFrame:
+async def load_penguins_data() -> flyte.io.DataFrame:
     """Load and preprocess the penguins dataset."""
+    import pandas as pd
     from sklearn.preprocessing import LabelEncoder
 
     url = "https://raw.githubusercontent.com/mwaskom/seaborn-data/master/penguins.csv"
@@ -68,19 +69,23 @@ async def load_penguins_data() -> pd.DataFrame:
     print(f"Loaded {len(df)} samples")
     print(f"Target classes: {list(le_species.classes_)}")
 
-    return df
+    return flyte.io.DataFrame.wrap_df(df)
 
 
 @env.task
 async def run_trial(
-    train_df: pd.DataFrame,
-    test_df: pd.DataFrame,
+    train_df: flyte.io.DataFrame,
+    test_df: flyte.io.DataFrame,
     params: HyperParams,
     trial_id: int,
 ) -> TrialResult:
     """Run a single hyperparameter trial."""
+    import pandas as pd
     from sklearn.ensemble import RandomForestClassifier
     from sklearn.metrics import f1_score, accuracy_score
+
+    train_df = await train_df.open(pd.DataFrame).all()
+    test_df = await test_df.open(pd.DataFrame).all()
 
     feature_cols = ["bill_length_mm", "bill_depth_mm", "flipper_length_mm",
                     "body_mass_g", "island_encoded", "sex_encoded"]
@@ -120,11 +125,13 @@ async def run_trial(
 async def hyperparameter_optimization(n_trials: int = 20) -> TrialResult:
     """Run hyperparameter optimization and generate a report. Returns the best result."""
     import numpy as np
+    import pandas as pd
     import plotly.graph_objects as go
     from plotly.subplots import make_subplots
     from sklearn.model_selection import train_test_split
 
     df = await load_penguins_data()
+    df = await df.open(pd.DataFrame).all()
 
     train_df, test_df = train_test_split(
         df, test_size=0.2, random_state=42, stratify=df["species_encoded"]
@@ -155,7 +162,12 @@ async def hyperparameter_optimization(n_trials: int = 20) -> TrialResult:
     trial_tasks = []
     with flyte.group("hyperparameter-trials"):
         for i, params in enumerate(trial_params):
-            task = run_trial(train_df, test_df, params, i)
+            task = run_trial(
+                flyte.io.DataFrame.wrap_df(train_df),
+                flyte.io.DataFrame.wrap_df(test_df),
+                params,
+                i,
+            )
             trial_tasks.append(task)
         results = await asyncio.gather(*trial_tasks)
 
@@ -341,13 +353,14 @@ async def main() -> TrialResult:
 if __name__ == "__main__":
     import os
 
-    flyte.init(
-        api_key=os.environ["FLYTE_API_KEY"],
-        org=os.environ["FLYTE_ORG"],
-        project=os.environ["FLYTE_PROJECT"],
-        domain=os.environ["FLYTE_DOMAIN"],
-        image_builder="remote",
-    )
+    flyte.init_from_config()
+    # flyte.init(
+    #     api_key=os.environ["FLYTE_API_KEY"],
+    #     org=os.environ["FLYTE_ORG"],
+    #     project=os.environ["FLYTE_PROJECT"],
+    #     domain=os.environ["FLYTE_DOMAIN"],
+    #     image_builder="remote",
+    # )
     run = flyte.with_runcontext(mode="remote").run(main)
     print(run.url)
 

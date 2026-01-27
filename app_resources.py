@@ -64,6 +64,7 @@ async def build_script_image_task(script: str, tail: int = 50) -> ProcessResult:
             [
                 "uv",
                 "run",
+                "--no-project",
                 "--with", "flyte@git+https://github.com/flyteorg/flyte-sdk.git@378af3e0",
                 "--prerelease=allow",
                 filename,
@@ -103,7 +104,14 @@ async def run_script_remote_task(script: str, tail: int = 50) -> ProcessResult:
 
     try:
         proc = subprocess.run(
-            ["uv", "run", "--prerelease=allow", filename],
+            [
+                "uv",
+                "run",
+                "--no-project",
+                "--with", "flyte@git+https://github.com/flyteorg/flyte-sdk.git@378af3e0",
+                "--prerelease=allow",
+                filename,
+            ],
             capture_output=True,
             env=os.environ,
             text=True,

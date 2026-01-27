@@ -14,16 +14,9 @@
 import asyncio
 import tempfile
 
-import joblib
-import pandas as pd
-from sklearn.datasets import make_classification
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score
-from sklearn.tree import DecisionTreeClassifier
-
 import flyte
 import flyte.errors
-from flyte.io import Dir, File
+import flyte.io
 
 env = flyte.TaskEnvironment(
     name="distributed_random_forest",
@@ -56,8 +49,10 @@ FEATURE_NAMES = [f"feature_{i}" for i in range(N_FEATURES)]
 
 
 @env.task
-async def create_dataset(n_estimators: int) -> Dir:
+async def create_dataset(n_estimators: int) -> flyte.io.Dir:
     """Create a synthetic dataset that's too large to fit into memory, assuming 250Mi."""
+    import pandas as pd
+    from sklearn.datasets import make_classification
 
     temp_dir = tempfile.mkdtemp()
 
@@ -76,16 +71,17 @@ async def create_dataset(n_estimators: int) -> Dir:
         dataset.to_parquet(f"{temp_dir}/dataset_{i}.parquet")
         del X, y, dataset
 
-    return await Dir.from_local(temp_dir)
+    return await flyte.io.Dir.from_local(temp_dir)
 
 
 @env.task
-async def load_all_data(dataset_dir: Dir):
+async def load_all_data(dataset_dir: flyte.io.Dir):
     """Try to load all the data into memory.
 
     This task demonstrates that loading the entire dataset into memory results
     in an out of memory error.
     """
+    import pandas as pd
 
     dataframes: list[pd.DataFrame] = []
     async for file in dataset_dir.walk():
@@ -98,8 +94,9 @@ async def load_all_data(dataset_dir: Dir):
     print(data.describe())
 
 
-async def get_partition(dataset_dir: Dir, dataset_index: int) -> pd.DataFrame:
+async def get_partition(dataset_dir: flyte.io.Dir, dataset_index: int) -> flyte.io.DataFrame:
     """Helper function to get a partition of the dataset."""
+    import pandas as pd
 
     async for file in dataset_dir.walk():
         if file.name == f"dataset_{dataset_index}.parquet":
@@ -109,8 +106,10 @@ async def get_partition(dataset_dir: Dir, dataset_index: int) -> pd.DataFrame:
 
 
 @env.task
-async def train_decision_tree(dataset_dir: Dir, dataset_index: int) -> File:
+async def train_decision_tree(dataset_dir: flyte.io.Dir, dataset_index: int) -> flyte.io.File:
     """Train a decision tree on a subset of the dataset."""
+    import joblib
+    from sklearn.tree import DecisionTreeClassifier
 
     print(f"Training decision tree on partition {dataset_index}")
     dataset = await get_partition(dataset_dir, dataset_index)
@@ -122,29 +121,40 @@ async def train_decision_tree(dataset_dir: Dir, dataset_index: int) -> File:
     temp_dir = tempfile.mkdtemp()
     fp = f"{temp_dir}/decision_tree_{dataset_index}.joblib"
     joblib.dump(model, fp)
-    return await File.from_local(fp)
+    return await flyte.io.File.from_local(fp)
 
 
-async def load_decision_tree(file: File) -> DecisionTreeClassifier:
+async def load_decision_tree(file: flyte.io.File) -> flyte.io.File:
+    import joblib
     local_path = await file.download()
+
     return joblib.load(local_path)
 
 
-def random_forest_from_decision_trees(decision_trees: list[DecisionTreeClassifier]) -> RandomForestClassifier:
+def random_forest_from_decision_trees(decision_trees: list[flyte.io.File]) -> flyte.io.File:
     """Helper function that reconstitutes a random forest model from a list of decision trees."""
 
-    rf = RandomForestClassifier(n_estimators=len(decision_trees))
-    rf.estimators_ = decision_trees
-    rf.classes_ = decision_trees[0].classes_
-    rf.n_classes_ = decision_trees[0].n_classes_
-    rf.n_features_in_ = decision_trees[0].n_features_in_
-    rf.n_outputs_ = decision_trees[0].n_outputs_
+    import joblib
+    from sklearn.tree import DecisionTreeClassifier
+    from sklearn.ensemble import RandomForestClassifier
+
+    _decision_trees: list[DecisionTreeClassifier] = []
+    for file in decision_trees:
+        with file.open_sync("rb") as f:
+            _decision_trees.append(joblib.load(f))
+
+    rf = RandomForestClassifier(n_estimators=len(_decision_trees))
+    rf.estimators_ = _decision_trees
+    rf.classes_ = _decision_trees[0].classes_
+    rf.n_classes_ = _decision_trees[0].n_classes_
+    rf.n_features_in_ = _decision_trees[0].n_features_in_
+    rf.n_outputs_ = _decision_trees[0].n_outputs_
     rf.feature_names_in_ = FEATURE_NAMES
     return rf
 
 
 @env.task
-async def train_distributed_random_forest(dataset_dir: Dir, n_estimators: int) -> File:
+async def train_distributed_random_forest(dataset_dir: flyte.io.Dir, n_estimators: int) -> flyte.io.File:
     """Train a distributed random forest on the dataset.
 
     Random forest is an ensemble of decision trees that have been trained
@@ -155,8 +165,9 @@ async def train_distributed_random_forest(dataset_dir: Dir, n_estimators: int) -
     After training, we reconstitute the random forest from the collection
     of trained decision tree models.
     """
+    import joblib
 
-    decision_tree_files: list[File] = []
+    decision_tree_files: list[flyte.io.File] = []
 
     with flyte.group(f"parallel-training-{n_estimators}-decision-trees"):
         for i in range(n_estimators):
@@ -170,18 +181,21 @@ async def train_distributed_random_forest(dataset_dir: Dir, n_estimators: int) -
     temp_dir = tempfile.mkdtemp()
     fp = f"{temp_dir}/random_forest.joblib"
     joblib.dump(random_forest, fp)
-    return await File.from_local(fp)
+    return await flyte.io.File.from_local(fp)
 
 
 @env.task
 async def evaluate_random_forest(
-    random_forest: File,
-    dataset_dir: Dir,
+    random_forest: flyte.io.File,
+    dataset_dir: flyte.io.Dir,
     dataset_index: int,
 ) -> float:
     """Evaluate the random forest one partition of the dataset."""
 
-    with random_forest.open_sync() as f:
+    import joblib
+    from sklearn.metrics import accuracy_score
+
+    with await random_forest.open() as f:
         random_forest = joblib.load(f)
 
     data_partition = await get_partition(dataset_dir, dataset_index)
@@ -195,7 +209,7 @@ async def evaluate_random_forest(
 
 
 @env.task
-async def main(n_estimators: int = 16) -> tuple[File, float]:
+async def main(n_estimators: int = 16) -> tuple[flyte.io.File, float]:
     dataset = await create_dataset(n_estimators=n_estimators)
     try:
         await load_all_data(dataset)
