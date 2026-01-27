@@ -86,6 +86,10 @@ Make sure that `npx` is installed and available in your `$PATH`.
 
 > Run a flyte script that performs hyperparameter optimization that uses flyte to parallelize the training runs for training a random forest model on the penguins data. Assess f1 score as the evaluation metric, and visualize the results using flyte.report. Make sure the report style is beautiful.
 
+### PDF transcription
+
+> Create a flyte script that grabs the 5 most recently published articles from Arxiv and transcribes them using microsoft/VibeVoice-1.5B using the huggingface transformers library. Use a driver-worker pattern where the driver is a CPU environment and the worker is a GPU environment with one T4 GPU. Save the transcriptions to a json file using flyte.io.File, and use flyte.report make a pretty visualization of the transcriptions, including a preview of text the contents of documents the audio files embedded in the html report.
+
 ### GPU Batch inference
 
 > Run a flyte script that embeds the "review" column of the "scikit-learn/imdb" huggingface dataset using the "answerdotai/ModernBERT-base" model on a T4 GPU. Use a driver-worker pattern where the driver is a CPU environment and the worker is a GPU environment. Save the embeddings to a json file using flyte.io.File, and use flyte.report make a pretty visualization of the embeddings, including a preview of text the contents of the first five documents and the distribution of their embeddings.

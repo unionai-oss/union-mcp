@@ -2,14 +2,6 @@ import os
 import subprocess
 import flyte.io  # noqa: F401 - imported to register FileTransformer and DirTransformer with TypeEngine
 import flyte.remote
-from dataclasses import dataclass
-
-
-@dataclass
-class TaskResult:
-    stdout: str
-    stderr: str
-    returncode: int
 
 
 async def run_task(
@@ -89,8 +81,23 @@ async def build_script_image(script: str) -> dict:
         name="union_mcp_script_runner.build_script_image_task",
         auto_version="latest",
     )
-    run: flyte.remote.Run = flyte.run(task, script=script)
-    return {"image_build_run_url":run.url}
+    run: flyte.remote.Run = (
+        flyte.with_runcontext(
+            env_vars={
+                "FLYTE_API_KEY": os.environ["FLYTE_API_KEY"],
+                "FLYTE_ORG": os.environ["FLYTE_ORG"],
+                "FLYTE_PROJECT": os.environ["FLYTE_PROJECT"],
+                "FLYTE_DOMAIN": os.environ["FLYTE_DOMAIN"],
+            },
+        ).run(task, script=script)
+    )
+    return {
+        "image_build_launcher_url": run.url,
+        "next_step": (
+            "call the get_run_io tool to fetch the build task output "
+            "which contains the task run for the image build."
+        )
+    }
 
 
 async def run_script_remote(script: str) -> dict:
@@ -109,8 +116,22 @@ async def run_script_remote(script: str) -> dict:
         name="union_mcp_script_runner.run_script_remote_task",
         auto_version="latest",
     )
-    run: flyte.remote.Run = flyte.run(task, script=script)
-    return {"run_script_url": run.url}
+    run: flyte.remote.Run = (
+        flyte.with_runcontext(
+            env_vars={"FLYTE_API_KEY": os.environ["FLYTE_API_KEY"],
+                "FLYTE_ORG": os.environ["FLYTE_ORG"],
+                "FLYTE_PROJECT": os.environ["FLYTE_PROJECT"],
+                "FLYTE_DOMAIN": os.environ["FLYTE_DOMAIN"],
+            },
+        ).run(task, script=script)
+    )
+    return {
+        "run_script_launcher_url": run.url,
+        "next_step": (
+            "call the get_run_io tool to fetch the script run task output "
+            "which contains the task run url for the script."
+        )
+    }
 
 
 def search_flyte_examples(
