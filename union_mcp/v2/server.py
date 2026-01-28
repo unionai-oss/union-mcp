@@ -44,13 +44,13 @@ mcp = FastMCP(
 
 
 @mcp.tool()
-async def run_task(
+async def run_deployed_task(
     name: str,
     inputs: dict,
     ctx: Context,
 ) -> dict:
     await ctx.info(f"Running task {name}")
-    """Run a task with natural language.
+    """Run a deployed task on the remote Flyte cluster.
 
     - Based on the prompt and inputs dictionary, determine the task to run
     - Format the inputs dictionary so that it matches the task function signature
@@ -68,11 +68,11 @@ async def run_task(
 
 
 @mcp.tool()
-async def get_task(
+async def get_deployed_task(
     name: str,
     ctx: Context,
 ) -> dict:
-    """Get a union task."""
+    """Get a deployed task on the remote Flyte cluster."""
     task = await resources.get_task(name)
     return task.to_dict()
 
@@ -89,28 +89,28 @@ async def get_run(
     return (await resources.get_run_details(name)).to_dict()
 
 
-@mcp.tool()
-async def wait_for_run_completion(
-    name: str,
-    ctx: Context,
-) -> dict:
-    """Wait for a run to complete.
+# @mcp.tool()
+# async def wait_for_run_completion(
+#     name: str,
+#     ctx: Context,
+# ) -> dict:
+#     """Wait for a run to complete.
 
-    Use this tool to wait for a long-running task run to complete. Useful when
-    the run completion is needed to continue the conversation so that the agent
-    doesn't have to keep polling for the run status.
+#     Use this tool to wait for a long-running task run to complete. Useful when
+#     the run completion is needed to continue the conversation so that the agent
+#     doesn't have to keep polling for the run status.
 
-    Use this for when waiting for build_script_image or run_script_remote runs
-    to complete.
+#     Use this for when waiting for build_script_image or run_script_remote runs
+#     to complete.
     
-    Args:
-        name: Name of the run to wait for.
+#     Args:
+#         name: Name of the run to wait for.
 
-    Returns:
-        A dictionary of run information.
-    """
-    await ctx.info(f"Waiting for run {name} to complete")
-    return (await resources.wait_for_run_completion(name)).to_dict()
+#     Returns:
+#         A dictionary of run information.
+#     """
+#     await ctx.info(f"Waiting for run {name} to complete")
+#     return (await resources.wait_for_run_completion(name)).to_dict()
 
 
 @mcp.tool()
@@ -118,7 +118,7 @@ async def get_run_io(
     name: str,
     ctx: Context,
 ) -> dict:
-    """Get personalized union execution."""
+    """Get inputs and outputs of a run."""
     inputs, outputs = await resources.get_run_io(name)
     return {
         "inputs": inputs.to_dict(),
@@ -127,10 +127,10 @@ async def get_run_io(
 
 
 @mcp.tool()
-async def list_tasks(
+async def list_deployed_tasks(
     ctx: Context,
 ) -> list[dict]:
-    """List all tasks."""
+    """List all deployed tasks on the remote Flyte cluster."""
     return [task.to_dict() for task in await resources.list_tasks()]
 
 

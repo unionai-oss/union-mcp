@@ -75,12 +75,12 @@ Make sure that `npx` is installed and available in your `$PATH`.
 
 ### Toy example
 
-> Create a flyte script that fans out tasks to compute the square of the numbers from 1 to 100_000, where each task handles 1_000 numbers, then sums the squares.
+> Run a flyte script remotely, which fans out tasks to compute the square of the numbers from 1 to 100_000, where each task handles 1_000 numbers, then sums the squares.
 
 
 ### Data visualization
 
-> Create and run a flyte script that downloads the dataset at https://github.com/plotly/datasets/blob/master/timeseries.csv and creates a visualization in plotly and run it remotely. The flyte script should use flyte.report to render a beautiful visualization.
+> Run a flyte script that downloads the dataset at https://github.com/plotly/datasets/blob/master/timeseries.csv and creates a visualization in plotly and run it remotely. The flyte script should use flyte.report to render a beautiful visualization.
 
 ### Classical ML model training
 
@@ -88,7 +88,7 @@ Make sure that `npx` is installed and available in your `$PATH`.
 
 ### PDF text to speech
 
-> Create a flyte script that grabs the 5 most recently published articles from Arxiv and generates audio files from article text using suno/bark-small using the huggingface transformers library. Use a driver-worker pattern where the driver is a CPU environment and the worker is a GPU environment with one T4 GPU. Save the audio files to a json file using flyte.io.File, and use flyte.report make a pretty visualization of the audio files, including a preview of text the contents of documents the audio files embedded in the html report.
+> Run a flyte script that grabs the 5 most recently published articles from Arxiv and generates audio files from article text using suno/bark-small using the huggingface transformers library. Use a driver-worker pattern where the driver is a CPU environment and the worker is a GPU environment with one T4 GPU. Save the audio files to a json file using flyte.io.File, and use flyte.report make a pretty visualization of the audio files, including a preview of text the contents of documents the audio files embedded in the html report.
 
 ### GPU Batch inference for RAG
 
