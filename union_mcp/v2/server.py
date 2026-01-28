@@ -123,6 +123,7 @@ async def get_run_io(
     return {
         "inputs": inputs.to_dict(),
         "outputs": outputs.to_dict(),
+        "next_step": "show the IO data and format the run url as a clickable markdown link."
     }
 
 
