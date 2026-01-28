@@ -247,7 +247,7 @@ async def search_flyte_sdk_examples(
         A markdown-formatted string containing the contents of the top 3 files with the most matches.
     """
     await ctx.info("Getting example Flyte SDK example scripts")
-    return resources.search_flyte_examples(
+    return await resources.search_flyte_examples(
         pattern,
         "/root/flyte-sdk/examples",
         top_n=3,
@@ -276,7 +276,7 @@ async def search_flyte_docs_examples(
         A markdown-formatted string containing the contents of the top 3 files with the most matches.
     """
     await ctx.info("Getting example Flyte docs")
-    return resources.search_flyte_examples(
+    return await resources.search_flyte_examples(
         pattern,
         "/root/unionai-examples/v2",
         top_n=3,
@@ -306,7 +306,7 @@ async def search_full_docs(
         A markdown-formatted string containing the contents of the top 3 files with the most matches.
     """
     await ctx.info("Getting example Flyte docs")
-    return resources.search_flyte_examples(
+    return await resources.search_flyte_examples(
         pattern,
         "/root/full-docs.txt",
         before_context_lines=before_context_lines,

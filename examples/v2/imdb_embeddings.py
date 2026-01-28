@@ -110,6 +110,33 @@ def mean_pooling(model_output, attention_mask):
     )
 
 
+def sentiment_to_int(sentiment) -> int:
+    """Convert sentiment string or int to integer label."""
+    if isinstance(sentiment, int):
+        return sentiment
+    if isinstance(sentiment, str):
+        return 1 if sentiment.lower() == "positive" else 0
+    return int(sentiment)
+
+
+def sentiment_to_label(sentiment) -> str:
+    """Convert sentiment to display label."""
+    if isinstance(sentiment, int):
+        return "Positive" if sentiment == 1 else "Negative"
+    if isinstance(sentiment, str):
+        return "Positive" if sentiment.lower() == "positive" else "Negative"
+    return "Unknown"
+
+
+def is_positive(sentiment) -> bool:
+    """Check if sentiment is positive."""
+    if isinstance(sentiment, int):
+        return sentiment == 1
+    if isinstance(sentiment, str):
+        return sentiment.lower() == "positive"
+    return False
+
+
 @gpu_worker_env.task
 async def embed_batch(
     texts: List[str],
@@ -203,9 +230,11 @@ async def embed_imdb_dataset(
     dataset = dataset.select(range(min(num_samples, len(dataset))))
 
     reviews = dataset["review"]
-    labels = dataset["sentiment"]  # scikit-learn/imdb uses 'sentiment' not 'label'
+    # scikit-learn/imdb uses 'sentiment' column with string values ("positive"/"negative")
+    raw_labels = dataset["sentiment"]
 
     print(f"Loaded {len(reviews)} reviews")
+    print(f"Sample sentiment value: {raw_labels[0]} (type: {type(raw_labels[0])})")
 
     # Log dataset info
     await flyte.report.log.aio(f"""
@@ -226,13 +255,14 @@ async def embed_imdb_dataset(
     """, do_flush=True)
 
     for i in range(min(5, len(reviews))):
-        sentiment = "Positive" if labels[i] == 1 else "Negative"
+        sentiment_label = sentiment_to_label(raw_labels[i])
+        is_pos = is_positive(raw_labels[i])
         preview_text = reviews[i][:500] + "..." if len(reviews[i]) > 500 else reviews[i]
         await flyte.report.log.aio(f"""
-        <div style="background: {'#e8f5e9' if labels[i] == 1 else '#ffebee'}; 
+        <div style="background: {'#e8f5e9' if is_pos else '#ffebee'}; 
                     padding: 15px; margin: 10px 0; border-radius: 8px; 
-                    border-left: 4px solid {'#4caf50' if labels[i] == 1 else '#f44336'};">
-            <strong>Document {i + 1}</strong> - <span style="color: {'#2e7d32' if labels[i] == 1 else '#c62828'};">{sentiment}</span>
+                    border-left: 4px solid {'#4caf50' if is_pos else '#f44336'};">
+            <strong>Document {i + 1}</strong> - <span style="color: {'#2e7d32' if is_pos else '#c62828'};">{sentiment_label}</span>
             <p style="font-size: 14px; color: #333; margin-top: 10px;">{preview_text}</p>
         </div>
         """, do_flush=True)
@@ -284,7 +314,7 @@ async def embed_imdb_dataset(
     df_viz = pd.DataFrame({
         "PC1": embeddings_2d[:, 0],
         "PC2": embeddings_2d[:, 1],
-        "Sentiment": ["Positive" if l == 1 else "Negative" for l in labels],
+        "Sentiment": [sentiment_to_label(l) for l in raw_labels],
         "Text Preview": [r[:100] + "..." if len(r) > 100 else r for r in reviews],
     })
 
@@ -360,7 +390,8 @@ async def embed_imdb_dataset(
             {
                 "index": i,
                 "text_preview": reviews[i][:200],
-                "label": int(labels[i]),
+                "label": sentiment_to_int(raw_labels[i]),
+                "sentiment": sentiment_to_label(raw_labels[i]),
                 "embedding": emb,
             }
             for i, emb in enumerate(all_embeddings)

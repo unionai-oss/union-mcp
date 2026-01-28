@@ -4,6 +4,8 @@ import flyte.io  # noqa: F401 - imported to register FileTransformer and DirTran
 import flyte.remote
 import uuid
 
+from flyte._utils import asyncify
+
 
 async def run_task(
     name: str,
@@ -84,7 +86,8 @@ async def build_script_image(script: str, tail: int = 50) -> dict:
         f.write(script)
 
     try:
-        proc = subprocess.run(
+        proc = await asyncify.run_sync_with_loop(
+            subprocess.run,
             ["/opt/venv/bin/python", filename, "--build"],
             capture_output=True,
             env=os.environ,
@@ -122,7 +125,8 @@ async def run_script_remote(script: str, tail: int = 50) -> dict:
         f.write(script)
 
     try:
-        proc = subprocess.run(
+        proc = await asyncify.run_sync_with_loop(
+            subprocess.run,
             ["/opt/venv/bin/python", filename],
             capture_output=True,
             env=os.environ,
@@ -142,7 +146,7 @@ async def run_script_remote(script: str, tail: int = 50) -> dict:
         os.remove(filename)
 
 
-def search_flyte_examples(
+async def search_flyte_examples(
     pattern: str, file_or_dir: str, top_n: int = 3, before_context_lines: int = 5, after_context_lines: int = 5,
 ) -> str:
     """Grep for a pattern in flyte-sdk/examples, return top n files with most matches as markdown.
@@ -157,7 +161,8 @@ def search_flyte_examples(
         A markdown-formatted string containing the matching lines with context from the top files.
     """
     # Use grep -c to count matches per file
-    proc = subprocess.run(
+    proc = await asyncify.run_sync_with_loop(
+        subprocess.run,
         ["grep", "-r", "-c", pattern, file_or_dir],
         capture_output=True,
         text=True,
@@ -199,7 +204,8 @@ def search_flyte_examples(
 
         # Get matching lines with context using grep -B and -A
         try:
-            context_proc = subprocess.run(
+            context_proc = await asyncify.run_sync_with_loop(
+                subprocess.run,
                 ["grep", "-n", f"-B{before_context_lines}", f"-A{after_context_lines}", pattern, filepath],
                 capture_output=True,
                 text=True,
