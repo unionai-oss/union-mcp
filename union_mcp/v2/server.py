@@ -73,7 +73,6 @@ async def get_task(
     ctx: Context,
 ) -> dict:
     """Get a union task."""
-    print(f"Getting task {name}")
     task = await resources.get_task(name)
     return task.to_dict()
 
@@ -87,7 +86,6 @@ async def get_run(
     
     Use wait_for_run_completion to wait for a long-running task run to complete.
     """
-    print(f"Getting execution {name}")
     return (await resources.get_run_details(name)).to_dict()
 
 
@@ -121,7 +119,6 @@ async def get_run_io(
     ctx: Context,
 ) -> dict:
     """Get personalized union execution."""
-    print(f"Getting execution {name}")
     inputs, outputs = await resources.get_run_io(name)
     return {
         "inputs": inputs.to_dict(),
@@ -134,7 +131,6 @@ async def list_tasks(
     ctx: Context,
 ) -> list[dict]:
     """List all tasks."""
-    print(f"Listing tasks")
     return [task.to_dict() for task in await resources.list_tasks()]
 
 
@@ -144,7 +140,6 @@ async def list_runs(
     ctx: Context,
 ) -> dict:
     """Get a union task inputs and outputs."""
-    print(f"Getting runs of {task_name}")
     runs = await resources.list_runs(task_name)
     return [(await run.action.details()).to_dict() for run in runs]
 
@@ -331,8 +326,6 @@ async def lifespan(app: Starlette):
         project=project,
         domain=domain,
     )
-    print("Initialized Flyte passthrough auth")
-
     async with mcp.session_manager.run():
         yield
 

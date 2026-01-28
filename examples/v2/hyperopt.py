@@ -42,7 +42,12 @@ class HyperParams:
 
 @dataclass
 class TrialResult:
-    params: HyperParams
+    """Flattened trial result to avoid nested dataclass serialization issues."""
+    n_estimators: int
+    max_depth: int
+    min_samples_split: int
+    min_samples_leaf: int
+    max_features: str
     f1_score: float
     accuracy: float
     train_f1: float
@@ -118,7 +123,16 @@ async def run_trial(
 
     print(f"Trial {trial_id}: F1={f1:.4f}, Accuracy={accuracy:.4f}")
 
-    return TrialResult(params=params, f1_score=f1, accuracy=accuracy, train_f1=train_f1)
+    return TrialResult(
+        n_estimators=params.n_estimators,
+        max_depth=params.max_depth,
+        min_samples_split=params.min_samples_split,
+        min_samples_leaf=params.min_samples_leaf,
+        max_features=params.max_features,
+        f1_score=f1,
+        accuracy=accuracy,
+        train_f1=train_f1,
+    )
 
 
 @env.task(report=True)
@@ -178,8 +192,8 @@ async def hyperparameter_optimization(n_trials: int = 20) -> TrialResult:
 
     f1_scores = [r.f1_score for r in results]
     train_f1s = [r.train_f1 for r in results]
-    n_estimators_list = [r.params.n_estimators for r in results]
-    max_depths = [r.params.max_depth for r in results]
+    n_estimators_list = [r.n_estimators for r in results]
+    max_depths = [r.max_depth for r in results]
 
     # Create visualizations
     fig = make_subplots(
@@ -256,8 +270,8 @@ async def hyperparameter_optimization(n_trials: int = 20) -> TrialResult:
             dimensions=[
                 dict(label="n_estimators", values=n_estimators_list),
                 dict(label="max_depth", values=max_depths),
-                dict(label="min_samples_split", values=[r.params.min_samples_split for r in results]),
-                dict(label="min_samples_leaf", values=[r.params.min_samples_leaf for r in results]),
+                dict(label="min_samples_split", values=[r.min_samples_split for r in results]),
+                dict(label="min_samples_leaf", values=[r.min_samples_leaf for r in results]),
                 dict(label="F1 Score", values=f1_scores),
             ]
         )
@@ -268,21 +282,21 @@ async def hyperparameter_optimization(n_trials: int = 20) -> TrialResult:
     # Build results table
     table_rows = ""
     for i, r in enumerate(results_sorted[:10]):
-        depth_str = str(r.params.max_depth) if r.params.max_depth > 0 else "None"
+        depth_str = str(r.max_depth) if r.max_depth > 0 else "None"
         table_rows += f"""
         <tr>
             <td>{i+1}</td>
             <td><strong>{r.f1_score:.4f}</strong></td>
             <td>{r.accuracy:.4f}</td>
-            <td>{r.params.n_estimators}</td>
+            <td>{r.n_estimators}</td>
             <td>{depth_str}</td>
-            <td>{r.params.min_samples_split}</td>
-            <td>{r.params.min_samples_leaf}</td>
-            <td>{r.params.max_features}</td>
+            <td>{r.min_samples_split}</td>
+            <td>{r.min_samples_leaf}</td>
+            <td>{r.max_features}</td>
         </tr>
         """
 
-    best_depth_str = str(best_result.params.max_depth) if best_result.params.max_depth > 0 else "None"
+    best_depth_str = str(best_result.max_depth) if best_result.max_depth > 0 else "None"
 
     # Log to flyte report
     main_tab = flyte.report.get_tab("Results")
@@ -292,8 +306,8 @@ async def hyperparameter_optimization(n_trials: int = 20) -> TrialResult:
     <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
         <h3>Best Configuration</h3>
         <p><strong>F1 Score:</strong> {best_result.f1_score:.4f} | <strong>Accuracy:</strong> {best_result.accuracy:.4f}</p>
-        <p><strong>n_estimators:</strong> {best_result.params.n_estimators} | <strong>max_depth:</strong> {best_depth_str} |
-           <strong>min_samples_split:</strong> {best_result.params.min_samples_split} | <strong>min_samples_leaf:</strong> {best_result.params.min_samples_leaf}</p>
+        <p><strong>n_estimators:</strong> {best_result.n_estimators} | <strong>max_depth:</strong> {best_depth_str} |
+           <strong>min_samples_split:</strong> {best_result.min_samples_split} | <strong>min_samples_leaf:</strong> {best_result.min_samples_leaf}</p>
     </div>
     """)
     main_tab.log(f"""
@@ -351,18 +365,26 @@ async def main() -> TrialResult:
 
 
 if __name__ == "__main__":
+    import argparse
     import os
 
-    flyte.init_from_config()
-    # flyte.init(
-    #     api_key=os.environ["FLYTE_API_KEY"],
-    #     org=os.environ["FLYTE_ORG"],
-    #     project=os.environ["FLYTE_PROJECT"],
-    #     domain=os.environ["FLYTE_DOMAIN"],
-    #     image_builder="remote",
-    # )
-    run = flyte.with_runcontext(mode="remote").run(main)
-    print(run.url)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--build", action="store_true")
+    args = parser.parse_args()
+
+    flyte.init(
+        api_key=os.environ["FLYTE_API_KEY"],
+        org=os.environ["FLYTE_ORG"],
+        project=os.environ["FLYTE_PROJECT"],
+        domain=os.environ["FLYTE_DOMAIN"],
+        image_builder="remote",
+    )
+    if args.build:
+        uri = flyte.build(env.image, wait=False)
+        print(f"build run url: {uri}")
+    else:
+        run = flyte.with_runcontext(mode="remote").run(main)
+        print(run.url)
 
     # Run with:
     # uv run --prerelease=allow examples/v2/hyperopt.py

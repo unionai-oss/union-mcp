@@ -40,6 +40,9 @@ export FLYTE_DOMAIN=development  # use custom domain name
 export APP_NAME=union-mcp-v2  # use custom app name
 export APP_SUBDOMAIN=mcp-v2  # use custom app subdomain
 export APP_PORT=8000  # use custom app port
+
+export APP_NAME=union-mcp-v2-test  # use custom app name
+export APP_SUBDOMAIN=union-mcp-v2-test  # use custom app subdomain
 ```
 
 Create a Flyte v2 config file:

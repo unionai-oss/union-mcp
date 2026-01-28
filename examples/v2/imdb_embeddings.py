@@ -422,6 +422,7 @@ if __name__ == "__main__":
     parser.add_argument("--num-samples", type=int, default=100)
     args = parser.parse_args()
 
+
     flyte.init(
         api_key=os.environ["FLYTE_API_KEY"],
         org=os.environ["FLYTE_ORG"],
