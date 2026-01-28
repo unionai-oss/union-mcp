@@ -94,6 +94,10 @@ async def build_script_image(script: str, tail: int = 50) -> dict:
             "stdout": "\n".join(proc.stdout.splitlines()[-tail:]),
             "stderr": "\n".join(proc.stderr.splitlines()[-tail:]),
             "returncode": proc.returncode,
+            "next_step": (
+                "if the image build is successful, run the script with the run_script_remote tool. "
+                "if the image build fails, check the run details for the build run and debug the issue."
+            ),
         }
         return out
     finally:
@@ -128,6 +132,10 @@ async def run_script_remote(script: str, tail: int = 50) -> dict:
             "stdout": "\n".join(proc.stdout.splitlines()[-tail:]),
             "stderr": "\n".join(proc.stderr.splitlines()[-tail:]),
             "returncode": proc.returncode,
+            "next_step": (
+                "if the script run is successful, use the get_run_io tool to get the inputs and outputs of the run. "
+                "if the script run fails, check the run details for the run and debug the issue."
+            ),
         }
         return out
     finally:

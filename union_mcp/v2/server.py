@@ -145,7 +145,7 @@ async def list_runs(
 
 
 @mcp.tool()
-async def remote_build_script_image(
+async def build_script_image_remote(
     script: str,
     ctx: Context,
 ) -> dict:
@@ -172,7 +172,7 @@ async def remote_build_script_image(
 
 
 @mcp.tool()
-async def remote_run_script_remote(
+async def run_script_remote(
     script: str,
     ctx: Context,
 ) -> dict:
@@ -180,7 +180,7 @@ async def remote_run_script_remote(
 
     Only use this tool if the user explicitly requests to run a script on the remote Flyte cluster.
 
-    IMPORTANT: Make sure the script is built first using build_script_image tool, which should be called before this
+    IMPORTANT: Make sure the script is built first using build_script_image_remote tool, which should be called before this
     tool. This will asynchronously build the image and return the result, which contains the build task url. Make sure
     that the build task is completed before running the script. Use the get_run tool to monitor the build task.
 
