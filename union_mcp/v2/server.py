@@ -89,28 +89,28 @@ async def get_run(
     return (await resources.get_run_details(name)).to_dict()
 
 
-# @mcp.tool()
-# async def wait_for_run_completion(
-#     name: str,
-#     ctx: Context,
-# ) -> dict:
-#     """Wait for a run to complete.
+@mcp.tool()
+async def wait_for_run_completion(
+    name: str,
+    ctx: Context,
+) -> dict:
+    """Wait for a run to complete.
 
-#     Use this tool to wait for a long-running task run to complete. Useful when
-#     the run completion is needed to continue the conversation so that the agent
-#     doesn't have to keep polling for the run status.
+    Use this tool to wait for a long-running task run to complete. Useful when
+    the run completion is needed to continue the conversation so that the agent
+    doesn't have to keep polling for the run status.
 
-#     Use this for when waiting for build_script_image or run_script_remote runs
-#     to complete.
+    Use this for when waiting for build_script_image or run_script_remote runs
+    to complete.
     
-#     Args:
-#         name: Name of the run to wait for.
+    Args:
+        name: Name of the run to wait for.
 
-#     Returns:
-#         A dictionary of run information.
-#     """
-#     await ctx.info(f"Waiting for run {name} to complete")
-#     return (await resources.wait_for_run_completion(name)).to_dict()
+    Returns:
+        A dictionary of run information.
+    """
+    await ctx.info(f"Waiting for run {name} to complete")
+    return (await resources.wait_for_run_completion(name)).to_dict()
 
 
 @mcp.tool()
