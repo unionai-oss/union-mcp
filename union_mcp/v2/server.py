@@ -24,7 +24,7 @@ When you need to write a Flyte script to build in run:
 - Search for any flyte examples in your local workspace that may be relevant to the user's request
 - Use the flyte_script_format tool to get the template format of a MCP-ready Flyte script
 - Use the search_flyte_sdk_examples and search_flyte_docs_examples tools to find examples related to the user's request
-- Build the script image using the build_script_image tool.
+- Build the script image using the build_script_image_remote tool.
 - Run the script using the run_script_remote tool.
 - Check the status of the run using the get_run tool.
 - Once the run completes, you can use the get_run_io tool to get the inputs and outputs of the run.
@@ -152,7 +152,7 @@ async def build_script_image_remote(
 ) -> dict:
     """Build the image for a script on the remote Flyte cluster.
 
-    Only use this tool if the user explicitly requests to build a script on the remote Flyte cluster.
+    IMPORTANT: Make sure to call the flyte_script_format tool first to understand the script format and requirements.
 
     This tool should be used before invoking run_script_remote. This will asynchonously build the image and return the
     result, which contains the build task url. You can use the build task url to monitor the build progress.
@@ -179,7 +179,7 @@ async def run_script_remote(
 ) -> dict:
     """Run a task script provided by the user on remote Flyte cluster.
 
-    Only use this tool if the user explicitly requests to run a script on the remote Flyte cluster.
+    IMPORTANT: Make sure to call the flyte_script_format tool first to understand the script format and requirements.
 
     IMPORTANT: Make sure the script is built first using build_script_image_remote tool, which should be called before this
     tool. This will asynchronously build the image and return the result, which contains the build task url. Make sure
