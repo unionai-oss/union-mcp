@@ -13,6 +13,9 @@ env = flyte.TaskEnvironment(
         .with_pip_packages("unionai-reuse")
         .with_pip_packages("git+https://github.com/flyteorg/flyte-sdk.git@88cda0d")
     ),
+    secrets=[
+        flyte.Secret(key="EAGER_API_KEY", as_env_var="FLYTE_API_KEY"),
+    ],
     reusable=flyte.ReusePolicy(
         replicas=2,
         concurrency=1,

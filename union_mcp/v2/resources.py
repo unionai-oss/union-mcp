@@ -90,10 +90,9 @@ async def build_script_image(script: str, tail: int = 50) -> RunResult:
     Returns:
         A RunResult containing the stdout, stderr, returncode and next_step.
     """
-    task = flyte.remote.Task.get(name="union_mcp_tasks.build_image", version="97aba21014c8ae667011a2c0e261254d")
+    task = flyte.remote.Task.get(name="union_mcp_tasks.build_image", version="a967a30e807c1e4c6839745c6898323d")
     run = flyte.with_runcontext(
         env_vars={
-            "FLYTE_API_KEY": os.environ["FLYTE_API_KEY"],
             "FLYTE_ORG": os.environ["FLYTE_ORG"],
             "FLYTE_PROJECT": os.environ["FLYTE_PROJECT"],
             "FLYTE_DOMAIN": os.environ["FLYTE_DOMAIN"],
@@ -115,10 +114,9 @@ async def run_script_remote(script: str, tail: int = 50) -> RunResult:
     Returns:
         A RunResult containing the stdout, stderr, returncode and next_step.
     """
-    task = flyte.remote.Task.get(name="union_mcp_tasks.run_task", version="97aba21014c8ae667011a2c0e261254d")
+    task = flyte.remote.Task.get(name="union_mcp_tasks.run_task", version="a967a30e807c1e4c6839745c6898323d")
     run = flyte.with_runcontext(
         env_vars={
-            "FLYTE_API_KEY": os.environ["FLYTE_API_KEY"],
             "FLYTE_ORG": os.environ["FLYTE_ORG"],
             "FLYTE_PROJECT": os.environ["FLYTE_PROJECT"],
             "FLYTE_DOMAIN": os.environ["FLYTE_DOMAIN"],
@@ -326,10 +324,8 @@ if __name__ == "__main__":
         print(f"build run url: {{uri}}")
     else:
         # run the task in remote mode
-        # IMPORTANT: copy_style="none" disables fast deployment (code bundle upload) since
-        # the code is already in the built image. This is required when running scripts
-        # from nested execution contexts where the data proxy may not be accessible.
-        run = flyte.with_runcontext(mode="remote", copy_style="none").run(main, <main-arguments>)
+        # THIS IS IMPORTANT: mode="remote" is used to run the task in remote mode
+        run = flyte.with_runcontext(mode="remote").run(main, <main-arguments>)
         print(run.url)
 ```
 """.strip()
@@ -414,10 +410,8 @@ if __name__ == "__main__":
         print(f"build run url: {{uri}}")
     else:
         # run the task in remote mode
-        # THIS IS IMPORTANT: copy_style="none" disables fast deployment (code bundle upload) since
-        # the code is already in the built image. This is required when running scripts
-        # from nested execution contexts where the data proxy may not be accessible.
-        run = flyte.with_runcontext(mode="remote", copy_style="none").run(main)
+        # THIS IS IMPORTANT: mode="remote" is used to run the task in remote mode
+        run = flyte.with_runcontext(mode="remote").run(main)
         print(run.url)
 ```
 """.strip()
