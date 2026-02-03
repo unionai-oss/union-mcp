@@ -62,7 +62,7 @@ gpu_worker_env = flyte.TaskEnvironment(
 )
 
 # CPU Driver Environment - orchestrates the workflow
-cpu_driver_env = flyte.TaskEnvironment(
+env = flyte.TaskEnvironment(
     name="imdb_cpu_driver",
     resources=flyte.Resources(cpu=2, memory="8Gi"),
     image=base_image,
@@ -194,7 +194,7 @@ async def embed_batch(
     return all_embeddings
 
 
-@cpu_driver_env.task(report=True)
+@env.task(report=True)
 async def embed_imdb_dataset(
     num_samples: int = 100,
     model_name: str = "answerdotai/ModernBERT-base",
@@ -314,7 +314,7 @@ async def embed_imdb_dataset(
     df_viz = pd.DataFrame({
         "PC1": embeddings_2d[:, 0],
         "PC2": embeddings_2d[:, 1],
-        "Sentiment": [sentiment_to_label(l) for l in raw_labels],
+        "Sentiment": [sentiment_to_label(label) for label in raw_labels],
         "Text Preview": [r[:100] + "..." if len(r) > 100 else r for r in reviews],
     })
 
@@ -420,7 +420,7 @@ async def embed_imdb_dataset(
     return await File.from_local(output_path)
 
 
-@cpu_driver_env.task
+@env.task
 async def main(
     num_samples: int = 100,
     model_name: str = "answerdotai/ModernBERT-base",
@@ -448,32 +448,24 @@ if __name__ == "__main__":
     import argparse
     import os
 
+    from flyte.remote import auth_metadata
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--build", action="store_true")
-    parser.add_argument("--num-samples", type=int, default=100)
     args = parser.parse_args()
 
-
-    flyte.init(
-        api_key=os.environ["FLYTE_API_KEY"],
-        org=os.environ["FLYTE_ORG"],
-        project=os.environ["FLYTE_PROJECT"],
-        domain=os.environ["FLYTE_DOMAIN"],
-        image_builder="remote",
+    flyte.init_passthrough(
+        project=os.getenv("FLYTE_INTERNAL_EXECUTION_PROJECT"),
+        domain=os.getenv("FLYTE_INTERNAL_EXECUTION_DOMAIN"),
     )
-
-    if args.build:
-        uri = flyte.build(base_image, wait=False)
-        print(f"build run url: {uri}")
-    else:
-        # Run the task in remote mode
-        run = flyte.with_runcontext(mode="remote").run(
-            main,
-            num_samples=args.num_samples,
-        )
-        print(run.url)
+    with auth_metadata(("authorization", os.environ["FLYTE_PASSTHROUGH_API_KEY"])):    
+        if args.build:
+            uri = flyte.build(env.image, wait=False)
+            print(f"build run url: {uri}")
+        else:
+            run = flyte.with_runcontext(mode="remote").run(main)
+            print(run.url)
 
     # Run with:
     # uv run --prerelease=allow examples/v2/imdb_embeddings.py
     # uv run --prerelease=allow examples/v2/imdb_embeddings.py --build  # to build image first
-    # uv run --prerelease=allow examples/v2/imdb_embeddings.py --num-samples 500  # to embed more samples

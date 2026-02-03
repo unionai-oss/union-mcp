@@ -1,8 +1,11 @@
 import os
 import subprocess
+import hashlib
+
 import flyte.io  # noqa: F401 - imported to register FileTransformer and DirTransformer with TypeEngine
 import flyte.remote
 import uuid
+from grpc.aio import AioRpcError
 
 from dataclasses import dataclass
 
@@ -78,7 +81,17 @@ async def list_runs(task_name: str | None = None) -> list[flyte.remote.Run]:
     return runs
 
 
-async def build_script_image(script: str, tail: int = 50) -> RunResult:
+async def _get_or_create_api_key_secret(value: str) -> flyte.Secret:
+    name = hashlib.sha256(value.encode()).hexdigest()[:8]
+    name = f"union-mcp-key-{name}"
+    try:
+        await flyte.remote.Secret.get.aio(name=name)
+    except AioRpcError:
+        await flyte.remote.Secret.create.aio(name=name, value=value)
+    return flyte.Secret(key=name, as_env_var="FLYTE_PASSTHROUGH_API_KEY")
+
+
+async def build_script_image(script: str, api_key: str, tail: int = 100) -> RunResult:
     """Build the container image for a Flyte script using a pre-deployed task.
 
     This function invokes the `build_script_image_task` on the remote Flyte cluster
@@ -90,19 +103,18 @@ async def build_script_image(script: str, tail: int = 50) -> RunResult:
     Returns:
         A RunResult containing the stdout, stderr, returncode and next_step.
     """
-    task = flyte.remote.Task.get(name="union_mcp_tasks.build_image", version="a967a30e807c1e4c6839745c6898323d")
-    run = flyte.with_runcontext(
-        env_vars={
-            "FLYTE_ORG": os.environ["FLYTE_ORG"],
-            "FLYTE_PROJECT": os.environ["FLYTE_PROJECT"],
-            "FLYTE_DOMAIN": os.environ["FLYTE_DOMAIN"],
-        },
-    ).run(task, script=script)
+    api_key_secret = await _get_or_create_api_key_secret(api_key)
+    task = flyte.remote.Task.get(
+        name="union_mcp_tasks.build_image",
+        version=os.environ["APP_TASK_VERSION"],
+    ).override(secrets=[api_key_secret])
+
+    run = flyte.run(task, script=script, tail=tail)
     await run.wait.aio()
     return run.outputs()[0]
 
 
-async def run_script_remote(script: str, tail: int = 50) -> RunResult:
+async def run_script_remote(script: str, api_key: str, tail: int = 100) -> RunResult:
     """Run a Flyte script remotely using a pre-deployed task.
 
     This function invokes the `run_script_remote_task` on the remote Flyte cluster
@@ -114,21 +126,21 @@ async def run_script_remote(script: str, tail: int = 50) -> RunResult:
     Returns:
         A RunResult containing the stdout, stderr, returncode and next_step.
     """
-    task = flyte.remote.Task.get(name="union_mcp_tasks.run_task", version="a967a30e807c1e4c6839745c6898323d")
-    run = flyte.with_runcontext(
-        env_vars={
-            "FLYTE_ORG": os.environ["FLYTE_ORG"],
-            "FLYTE_PROJECT": os.environ["FLYTE_PROJECT"],
-            "FLYTE_DOMAIN": os.environ["FLYTE_DOMAIN"],
-        },
-    ).run(task, script=script)
+    api_key_secret = await _get_or_create_api_key_secret(api_key)
+    task = flyte.remote.Task.get(
+        name="union_mcp_tasks.run_task",
+        version=os.environ["APP_TASK_VERSION"],
+    ).override(secrets=[api_key_secret])
+
+    run = flyte.run(task, script=script, tail=tail)
     await run.wait.aio()
     return run.outputs()[0]
 
 
-async def _build_script_image(script: str, tail: int = 50) -> dict:
+async def build_script_image_(script: str, tail: int = 200) -> dict:
     """This is an internal function used by a Flyte task to build the container image for a script."""
-    filename = f"__build_script_{str(uuid.uuid4())[:16]}__.py"
+
+    filename = f"__build_script_{str(uuid.uuid4())[:8]}__.py".replace("-", "_")
 
     with open(filename, "w") as f:
         f.write(script)
@@ -138,12 +150,14 @@ async def _build_script_image(script: str, tail: int = 50) -> dict:
             subprocess.run,
             ["/opt/venv/bin/python", filename, "--build"],
             capture_output=True,
-            env=os.environ,
+            env=os.environ,  # Use clean environment
             text=True,
         )
+        # Include full stderr on error
+        full_stderr = proc.stderr if proc.returncode != 0 else "\n".join(proc.stderr.splitlines()[-tail:])
         return RunResult(
             stdout="\n".join(proc.stdout.splitlines()[-tail:]),
-            stderr="\n".join(proc.stderr.splitlines()[-tail:]),
+            stderr=full_stderr,
             returncode=proc.returncode,
             next_step="if the image build is successful, run the script with the run_script_remote tool. if the image build fails, check the run details for the build run and debug the issue.",
         )
@@ -151,9 +165,9 @@ async def _build_script_image(script: str, tail: int = 50) -> dict:
         os.remove(filename)
 
 
-async def _run_script_remote(script: str, tail: int = 50) -> dict:
+async def run_script_remote_(script: str, tail: int = 200) -> dict:
     """This is an internal function used by a Flyte task to run a script on the remote Flyte cluster."""
-    filename = f"__run_script_{str(uuid.uuid4())[:16]}__.py"
+    filename = f"__run_script_{str(uuid.uuid4())[:16]}__.py".replace("-", "_")
 
     with open(filename, "w") as f:
         f.write(script)
@@ -163,12 +177,14 @@ async def _run_script_remote(script: str, tail: int = 50) -> dict:
             subprocess.run,
             ["/opt/venv/bin/python", filename],
             capture_output=True,
-            env=os.environ,
+            env=os.environ,  # Use clean environment
             text=True,
         )
+        # Include full stderr to see the complete error message
+        full_stderr = proc.stderr if proc.returncode != 0 else "\n".join(proc.stderr.splitlines()[-tail:])
         return RunResult(
             stdout="\n".join(proc.stdout.splitlines()[-tail:]),
-            stderr="\n".join(proc.stderr.splitlines()[-tail:]),
+            stderr=full_stderr,
             returncode=proc.returncode,
             next_step="if the script run is successful, use the get_run_io tool to get the inputs and outputs of the run. if the script run fails, check the run details for the run and debug the issue.",
         )
@@ -248,7 +264,7 @@ async def search_flyte_examples(
 
                 markdown_parts.append(f"```{lang}\n{context_proc.stdout.strip()}\n```\n")
             else:
-                markdown_parts.append(f"*No context available for matches*\n")
+                markdown_parts.append("*No context available for matches*\n")
         except (IOError, OSError) as e:
             markdown_parts.append(f"*Error getting context: {e}*\n")
 
@@ -304,29 +320,25 @@ if __name__ == "__main__":
     import argparse
     import os
 
+    from flyte.remote import auth_metadata
+
     # IMPORTANT: it makes sure the script can be both built and run on the MCP server
     parser = argparse.ArgumentParser()
     parser.add_argument("--build", action="store_true")
     args = parser.parse_args()
 
     # IMPORTANT: it makes sure the script can be run on the MCP server
-    flyte.init(
-        api_key=os.environ["FLYTE_API_KEY"],
-        org=os.environ["FLYTE_ORG"],
-        project=os.environ["FLYTE_PROJECT"],
-        domain=os.environ["FLYTE_DOMAIN"],
-        # IMPORTANT: image builder needs to be set to remote for the script to run on the MCP server
-        image_builder="remote",
+    flyte.init_passthrough(
+        project=os.getenv("FLYTE_INTERNAL_EXECUTION_PROJECT"),
+        domain=os.getenv("FLYTE_INTERNAL_EXECUTION_DOMAIN"),
     )
-    # IMPORTANT: the script should be built first, then run
-    if args.build:
-        uri = flyte.build(env.image, wait=False)
-        print(f"build run url: {{uri}}")
-    else:
-        # run the task in remote mode
-        # THIS IS IMPORTANT: mode="remote" is used to run the task in remote mode
-        run = flyte.with_runcontext(mode="remote").run(main, <main-arguments>)
-        print(run.url)
+    with auth_metadata(("authorization", os.environ["FLYTE_PASSTHROUGH_API_KEY"])):
+        if args.build:
+            uri = flyte.build(env.image, wait=False)
+            print(f"build run url: {{uri}}")
+        else:
+            run = flyte.with_runcontext(mode="remote").run(main, <main-arguments>)
+            print(run.url)
 ```
 """.strip()
 
@@ -390,28 +402,24 @@ if __name__ == "__main__":
     import argparse
     import os
 
+    from flyte.remote import auth_metadata
+
     # THIS IS IMPORTANT: it makes sure the script can be both built and run on the MCP server
     parser = argparse.ArgumentParser()
     parser.add_argument("--build", action="store_true")
     args = parser.parse_args()
 
     # THIS IS IMPORTANT: it makes sure the script can be run on the MCP server
-    flyte.init(
-        api_key=os.environ["FLYTE_API_KEY"],
-        org=os.environ["FLYTE_ORG"],
-        project=os.environ["FLYTE_PROJECT"],
-        domain=os.environ["FLYTE_DOMAIN"],
-        # THIS IS IMPORTANT: image builder needs to be set to remote for the script to run on the MCP server
-        image_builder="remote",
+    flyte.init_passthrough(
+        project=os.getenv("FLYTE_INTERNAL_EXECUTION_PROJECT"),
+        domain=os.getenv("FLYTE_INTERNAL_EXECUTION_DOMAIN"),
     )
-    # THIS IS IMPORTANT: the script should be built first, then run
-    if args.build:
-        uri = flyte.build(env.image, wait=False)
-        print(f"build run url: {{uri}}")
-    else:
-        # run the task in remote mode
-        # THIS IS IMPORTANT: mode="remote" is used to run the task in remote mode
-        run = flyte.with_runcontext(mode="remote").run(main)
-        print(run.url)
+    with auth_metadata(("authorization", os.environ["FLYTE_PASSTHROUGH_API_KEY"])):
+        if args.build:
+            uri = flyte.build(env.image, wait=False)
+            print(f"build run url: {{uri}}")
+        else:
+            run = flyte.with_runcontext(mode="remote").run(main)
+            print(run.url)
 ```
 """.strip()

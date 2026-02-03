@@ -225,24 +225,20 @@ if __name__ == "__main__":
     import argparse
     import os
 
+    from flyte.remote import auth_metadata
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--build", action="store_true")
     args = parser.parse_args()
 
-    flyte.init(
-        api_key=os.environ["FLYTE_API_KEY"],
-        org=os.environ["FLYTE_ORG"],
-        project=os.environ["FLYTE_PROJECT"],
-        domain=os.environ["FLYTE_DOMAIN"],
-        image_builder="remote",
-    )
-    if args.build:
-        uri = flyte.build(env.image, wait=False)
-        print(f"build run url: {uri}")
-    else:
-        # run the task in remote mode
-        run = flyte.with_runcontext(mode="remote").run(main)
-        print(run.url)
+    flyte.init_passthrough()
+    with auth_metadata(("authorization", os.environ["FLYTE_PASSTHROUGH_API_KEY"])):    
+        if args.build:
+            uri = flyte.build(env.image, wait=False)
+            print(f"build run url: {uri}")
+        else:
+            run = flyte.with_runcontext(mode="remote").run(main)
+            print(run.url)
 
     # Run with:
     # uv run --prerelease=allow examples/v2/script.py

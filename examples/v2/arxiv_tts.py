@@ -64,7 +64,7 @@ gpu_worker_env = flyte.TaskEnvironment(
 )
 
 # CPU Driver Environment - orchestrates the workflow
-cpu_driver_env = flyte.TaskEnvironment(
+env = flyte.TaskEnvironment(
     name="arxiv_cpu_driver",
     resources=flyte.Resources(cpu=2, memory="8Gi"),
     image=base_image,
@@ -138,7 +138,6 @@ async def generate_audio_for_article(
     import torch
     import soundfile as sf
     import io
-    import base64
 
     title = article_data["title"]
     abstract = article_data["abstract"]
@@ -203,7 +202,7 @@ async def generate_audio_for_article(
         }
 
 
-@cpu_driver_env.task(report=True)
+@env.task(report=True)
 async def fetch_and_process_articles(
     num_articles: int = 5,
     search_query: str = "cat:cs.AI",
@@ -221,7 +220,6 @@ async def fetch_and_process_articles(
     import arxiv
     import pandas as pd
     import plotly.express as px
-    import plotly.graph_objects as go
     from datetime import datetime
 
     # Log initial status
@@ -432,7 +430,7 @@ async def fetch_and_process_articles(
     return await File.from_local(output_path)
 
 
-@cpu_driver_env.task
+@env.task
 async def main(
     num_articles: int = 5,
     search_query: str = "cat:cs.AI",
@@ -457,28 +455,26 @@ if __name__ == "__main__":
     import argparse
     import os
 
+    from flyte.remote import auth_metadata
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--build", action="store_true")
     parser.add_argument("--num-articles", type=int, default=5)
     parser.add_argument("--search-query", type=str, default="cat:cs.AI")
     args = parser.parse_args()
 
-    flyte.init(
-        api_key=os.environ["FLYTE_API_KEY"],
-        org=os.environ["FLYTE_ORG"],
-        project=os.environ["FLYTE_PROJECT"],
-        domain=os.environ["FLYTE_DOMAIN"],
-        image_builder="remote",
+    flyte.init_passthrough(
+        project=os.getenv("FLYTE_INTERNAL_EXECUTION_PROJECT"),
+        domain=os.getenv("FLYTE_INTERNAL_EXECUTION_DOMAIN"),
     )
-
-    if args.build:
-        uri = flyte.build(base_image, wait=False)
-        print(f"build run url: {uri}")
-    else:
-        # Run the task in remote mode
-        run = flyte.with_runcontext(mode="remote").run(
-            main,
-            num_articles=args.num_articles,
-            search_query=args.search_query,
-        )
-        print(run.url)
+    with auth_metadata(("authorization", os.environ["FLYTE_PASSTHROUGH_API_KEY"])):    
+        if args.build:
+            uri = flyte.build(env.image, wait=False)
+            print(f"build run url: {uri}")
+        else:
+            run = flyte.with_runcontext(mode="remote").run(
+                main,
+                num_articles=args.num_articles,
+                search_query=args.search_query,
+            )
+            print(run.url)

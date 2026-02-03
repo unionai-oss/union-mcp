@@ -3,7 +3,6 @@
 import asyncio
 import flyte
 import flyte.remote
-from flyte.syncify import syncify
 
 
 def run_task(

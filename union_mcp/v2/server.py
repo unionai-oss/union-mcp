@@ -15,6 +15,7 @@ from starlette.responses import Response
 from starlette.requests import Request
 
 import union_mcp.v2.resources as resources
+import union_mcp.v2.auth as auth
 
 
 instructions = """
@@ -169,7 +170,9 @@ async def build_script_image_remote(
         A dictionary containing the image build run url. Use this run url to
         monitor the build progress.
     """
-    return await resources.build_script_image(script)
+    passthrough_api_key = auth.get_authorization_header()
+    assert passthrough_api_key, "Passthrough API key is required to run a script remotely"
+    return await resources.build_script_image(script, passthrough_api_key)
 
 
 @mcp.tool()
@@ -202,7 +205,9 @@ async def run_script_remote(
         A dictionary containing the run script url. Use this run url to
         monitor the run script progress.
     """
-    return await resources.run_script_remote(script)
+    passthrough_api_key = auth.get_authorization_header()
+    assert passthrough_api_key, "Passthrough API key is required to run a script remotely"
+    return await resources.run_script_remote(script, passthrough_api_key)
 
 
 @mcp.tool()

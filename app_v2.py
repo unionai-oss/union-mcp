@@ -28,7 +28,6 @@ FLYTE_DOMAIN = os.getenv("FLYTE_DOMAIN", "development")
 image = (
     flyte.Image.from_debian_base(name="union-mcp-server")
     .with_pip_packages("uv", "mcp[cli]==1.26.0", "starlette")
-    # .with_pip_packages("flyte==2.0.0b49")
     .with_apt_packages("git", "wget")
     .with_pip_packages("git+https://github.com/flyteorg/flyte-sdk.git@88cda0d")
     .with_commands(
@@ -48,13 +47,8 @@ app = AppEnvironment(
     include=["examples/v2/server.py", "union_mcp"],
     image=image,
     resources=flyte.Resources(cpu=3, memory="8Gi", disk="8Gi"),
-    secrets=[
-        flyte.Secret(key="EAGER_API_KEY", as_env_var="FLYTE_API_KEY"),
-    ],
     env_vars={
-        "FLYTE_ORG": FLYTE_ORG,
-        "FLYTE_PROJECT": FLYTE_PROJECT,
-        "FLYTE_DOMAIN": FLYTE_DOMAIN,
+        "APP_TASK_VERSION": "bc00e711ae512f4b858682846fd78d43",
         "DISABLE_AUTH": "0",
     },
     requires_auth=True,
