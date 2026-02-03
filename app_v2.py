@@ -10,6 +10,8 @@ import pathlib
 import flyte
 from flyte.app import AppEnvironment, Domain, Scaling, Link
 
+from app_v2_tasks import env as tasks_env
+
 
 APP_NAME = os.getenv("APP_NAME", "union-mcp-v2")
 APP_SUBDOMAIN = os.getenv("APP_SUBDOMAIN", "mcp-v2")
@@ -28,7 +30,7 @@ image = (
     .with_pip_packages("uv", "mcp[cli]==1.26.0", "starlette")
     # .with_pip_packages("flyte==2.0.0b49")
     .with_apt_packages("git", "wget")
-    .with_pip_packages("git+https://github.com/flyteorg/flyte-sdk.git@eee91d5")
+    .with_pip_packages("git+https://github.com/flyteorg/flyte-sdk.git@88cda0d")
     .with_commands(
         [
             "git clone https://github.com/flyteorg/flyte-sdk.git /root/flyte-sdk --branch main",
@@ -69,6 +71,7 @@ app = AppEnvironment(
             is_relative=True,
         )
     ],
+    depends_on=[tasks_env],
 )
 
 

@@ -37,10 +37,11 @@ export FLYTE_ENDPOINT=dns:///demo.hosted.unionai.cloud
 export FLYTE_ORG=demo  # use custom org name
 export FLYTE_PROJECT=union-mcp  # use custom project name
 export FLYTE_DOMAIN=development  # use custom domain name
+export APP_PORT=8000  # use custom app port
 export APP_NAME=union-mcp-v2  # use custom app name
 export APP_SUBDOMAIN=mcp-v2  # use custom app subdomain
-export APP_PORT=8000  # use custom app port
 
+# for testing thea pp
 export APP_NAME=union-mcp-v2-test  # use custom app name
 export APP_SUBDOMAIN=union-mcp-v2-test  # use custom app subdomain
 ```

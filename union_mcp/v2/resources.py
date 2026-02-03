@@ -4,7 +4,17 @@ import flyte.io  # noqa: F401 - imported to register FileTransformer and DirTran
 import flyte.remote
 import uuid
 
+from dataclasses import dataclass
+
 from flyte._utils import asyncify
+
+
+@dataclass
+class RunResult:
+    stdout: str
+    stderr: str
+    returncode: int
+    next_step: str
 
 
 async def run_task(
@@ -68,7 +78,7 @@ async def list_runs(task_name: str | None = None) -> list[flyte.remote.Run]:
     return runs
 
 
-async def build_script_image(script: str, tail: int = 50) -> dict:
+async def build_script_image(script: str, tail: int = 50) -> RunResult:
     """Build the container image for a Flyte script using a pre-deployed task.
 
     This function invokes the `build_script_image_task` on the remote Flyte cluster
@@ -78,8 +88,48 @@ async def build_script_image(script: str, tail: int = 50) -> dict:
         script: The Python script content to build.
 
     Returns:
-        A dict containing the run details including the URL to monitor the build.
+        A RunResult containing the stdout, stderr, returncode and next_step.
     """
+    task = flyte.remote.Task.get(name="union_mcp_tasks.build_image", version="97aba21014c8ae667011a2c0e261254d")
+    run = flyte.with_runcontext(
+        env_vars={
+            "FLYTE_API_KEY": os.environ["FLYTE_API_KEY"],
+            "FLYTE_ORG": os.environ["FLYTE_ORG"],
+            "FLYTE_PROJECT": os.environ["FLYTE_PROJECT"],
+            "FLYTE_DOMAIN": os.environ["FLYTE_DOMAIN"],
+        },
+    ).run(task, script=script)
+    await run.wait.aio()
+    return run.outputs()[0]
+
+
+async def run_script_remote(script: str, tail: int = 50) -> RunResult:
+    """Run a Flyte script remotely using a pre-deployed task.
+
+    This function invokes the `run_script_remote_task` on the remote Flyte cluster
+    to execute the provided script.
+
+    Args:
+        script: The Python script content to run.
+
+    Returns:
+        A RunResult containing the stdout, stderr, returncode and next_step.
+    """
+    task = flyte.remote.Task.get(name="union_mcp_tasks.run_task", version="97aba21014c8ae667011a2c0e261254d")
+    run = flyte.with_runcontext(
+        env_vars={
+            "FLYTE_API_KEY": os.environ["FLYTE_API_KEY"],
+            "FLYTE_ORG": os.environ["FLYTE_ORG"],
+            "FLYTE_PROJECT": os.environ["FLYTE_PROJECT"],
+            "FLYTE_DOMAIN": os.environ["FLYTE_DOMAIN"],
+        },
+    ).run(task, script=script)
+    await run.wait.aio()
+    return run.outputs()[0]
+
+
+async def _build_script_image(script: str, tail: int = 50) -> dict:
+    """This is an internal function used by a Flyte task to build the container image for a script."""
     filename = f"__build_script_{str(uuid.uuid4())[:16]}__.py"
 
     with open(filename, "w") as f:
@@ -93,32 +143,18 @@ async def build_script_image(script: str, tail: int = 50) -> dict:
             env=os.environ,
             text=True,
         )
-        out = {
-            "stdout": "\n".join(proc.stdout.splitlines()[-tail:]),
-            "stderr": "\n".join(proc.stderr.splitlines()[-tail:]),
-            "returncode": proc.returncode,
-            "next_step": (
-                "if the image build is successful, run the script with the run_script_remote tool. "
-                "if the image build fails, check the run details for the build run and debug the issue."
-            ),
-        }
-        return out
+        return RunResult(
+            stdout="\n".join(proc.stdout.splitlines()[-tail:]),
+            stderr="\n".join(proc.stderr.splitlines()[-tail:]),
+            returncode=proc.returncode,
+            next_step="if the image build is successful, run the script with the run_script_remote tool. if the image build fails, check the run details for the build run and debug the issue.",
+        )
     finally:
         os.remove(filename)
 
 
-async def run_script_remote(script: str, tail: int = 50) -> dict:
-    """Run a Flyte script remotely using a pre-deployed task.
-
-    This function invokes the `run_script_remote_task` on the remote Flyte cluster
-    to execute the provided script.
-
-    Args:
-        script: The Python script content to run.
-
-    Returns:
-        A dict containing the run details including the URL to monitor the execution.
-    """
+async def _run_script_remote(script: str, tail: int = 50) -> dict:
+    """This is an internal function used by a Flyte task to run a script on the remote Flyte cluster."""
     filename = f"__run_script_{str(uuid.uuid4())[:16]}__.py"
 
     with open(filename, "w") as f:
@@ -132,16 +168,12 @@ async def run_script_remote(script: str, tail: int = 50) -> dict:
             env=os.environ,
             text=True,
         )
-        out = {
-            "stdout": "\n".join(proc.stdout.splitlines()[-tail:]),
-            "stderr": "\n".join(proc.stderr.splitlines()[-tail:]),
-            "returncode": proc.returncode,
-            "next_step": (
-                "if the script run is successful, use the get_run_io tool to get the inputs and outputs of the run. "
-                "if the script run fails, check the run details for the run and debug the issue."
-            ),
-        }
-        return out
+        return RunResult(
+            stdout="\n".join(proc.stdout.splitlines()[-tail:]),
+            stderr="\n".join(proc.stderr.splitlines()[-tail:]),
+            returncode=proc.returncode,
+            next_step="if the script run is successful, use the get_run_io tool to get the inputs and outputs of the run. if the script run fails, check the run details for the run and debug the issue.",
+        )
     finally:
         os.remove(filename)
 
@@ -294,7 +326,10 @@ if __name__ == "__main__":
         print(f"build run url: {{uri}}")
     else:
         # run the task in remote mode
-        run = flyte.with_runcontext(mode="remote").run(main, <main-arguments>)
+        # IMPORTANT: copy_style="none" disables fast deployment (code bundle upload) since
+        # the code is already in the built image. This is required when running scripts
+        # from nested execution contexts where the data proxy may not be accessible.
+        run = flyte.with_runcontext(mode="remote", copy_style="none").run(main, <main-arguments>)
         print(run.url)
 ```
 """.strip()
@@ -379,7 +414,10 @@ if __name__ == "__main__":
         print(f"build run url: {{uri}}")
     else:
         # run the task in remote mode
-        run = flyte.with_runcontext(mode="remote").run(main)
+        # THIS IS IMPORTANT: copy_style="none" disables fast deployment (code bundle upload) since
+        # the code is already in the built image. This is required when running scripts
+        # from nested execution contexts where the data proxy may not be accessible.
+        run = flyte.with_runcontext(mode="remote", copy_style="none").run(main)
         print(run.url)
 ```
 """.strip()
