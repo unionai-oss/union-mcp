@@ -65,7 +65,6 @@ app = AppEnvironment(
             is_relative=True,
         )
     ],
-    depends_on=[tasks_env],
 )
 
 
@@ -83,6 +82,13 @@ if __name__ == "__main__":
         root_dir=pathlib.Path(__file__).parent,
         log_level=logging.DEBUG,
     )
-    deployments = flyte.deploy(app)
-    d = deployments[0]
-    print(f"Deployed app: {d.table_repr()}")
+
+    task_deployments = flyte.deploy(tasks_env)
+    print(f"Deployed tasks: {task_deployments[0].table_repr()}")
+    deployed_task = task_deployments[0].envs["union_mcp_tasks"].deployed_entities[0].deployed_task
+    task_version = deployed_task.task_template.id.version
+
+    remote_app = flyte.with_servecontext(env_vars={
+        "APP_TASK_VERSION": task_version,
+    }).serve(app)
+    print(f"Served app: {remote_app.url}")

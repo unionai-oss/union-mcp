@@ -147,7 +147,7 @@ async def list_runs(
 
 
 @mcp.tool()
-async def build_script_image_remote(
+async def build_uv_script_image_remote(
     script: str,
     ctx: Context,
 ) -> dict:
@@ -176,7 +176,7 @@ async def build_script_image_remote(
 
 
 @mcp.tool()
-async def run_script_remote(
+async def run_uv_script_remote(
     script: str,
     ctx: Context,
 ) -> dict:
@@ -211,7 +211,7 @@ async def run_script_remote(
 
 
 @mcp.tool()
-async def flyte_script_format(ctx: Context) -> str:
+async def flyte_uv_script_format(ctx: Context) -> str:
     """Get the template format of a Flyte script.
     
     Use search_flyte_sdk_examples and search_flyte_docs_examples to find examples
@@ -221,7 +221,7 @@ async def flyte_script_format(ctx: Context) -> str:
 
 
 @mcp.tool()
-async def flyte_script_example(ctx: Context) -> str:
+async def flyte_uv_script_example(ctx: Context) -> str:
     """Get a full example of a Flyte script.
     
     Use search_flyte_sdk_examples and search_flyte_docs_examples to find examples
