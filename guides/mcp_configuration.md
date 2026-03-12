@@ -8,7 +8,7 @@ you can configure your MCP client to use the Union MCP server.
 Create a Union api key:
 
 ```bash
-uv run --with flyteplugins-union --with flyte==2.0.0b50 flyte create api-key --name <my-api-key>
+uv run --with flyteplugins-union flyte create api-key --name <my-api-key>
 ```
 
 You'll see something like this:
@@ -129,6 +129,8 @@ This will configure the `claude_desktop_config.json` configuration file located 
 <details>
 <summary>Remote configuration</summary>
 
+Install [Node.js](https://nodejs.org/en) (which includes `npx`).
+
 Replace the `url` with the URL of the deployed app and `<your-token>` with the authentication token.
 
 ```json
@@ -147,6 +149,30 @@ Replace the `url` with the URL of the deployed app and `<your-token>` with the a
 }
 ```
 </details>
+
+## Use with VSCode
+
+Install [Node.js](https://nodejs.org/en) (which includes `npx`).
+
+Create or open `.vscode/mcp.json` in your project ([VSCode documentation](https://code.visualstudio.com/docs/copilot/customization/mcp-servers)) and add the following:
+
+
+```json
+{
+  "servers": {
+    "Union MCP": {
+      "command": "npx",
+      "args": [
+        "mcp-remote",
+        "https://mcp-v2.apps.demo.hosted.unionai.cloud/sdk/mcp",
+        "--header",
+        "Authorization: Bearer <secret-value>"
+      ]
+    }
+  }
+}
+```
+Note that the top-level key is `"servers"` (not `"mcpServers"` like in Claude Desktop).
 
 > [!NOTE]
 > Make sure the `uv` executable is available in `/usr/local/bin`, otherwise

@@ -61,7 +61,7 @@ uv run --with '.[v2]' flyte deploy --project $FLYTE_PROJECT --domain $FLYTE_DOMA
 Register the build and run tasks:
 
 ```bash
-uv run --with '.[v2]' flyte deploy --project $FLYTE_PROJECT --domain $FLYTE_DOMAIN tasks_v2.py
+uv run --with '.[v2]' flyte deploy --project $FLYTE_PROJECT --domain $FLYTE_DOMAIN app_v2_tasks.py
 ```
 
 Then deploy the app:
